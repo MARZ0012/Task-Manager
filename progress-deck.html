@@ -410,6 +410,82 @@
   .cal-ev.memo{background:linear-gradient(96deg,rgba(95,143,107,.22),rgba(47,111,114,.18));border-left-color:var(--cal-low)}
   .cal-ev.memo .t{color:var(--cal-low)}
   .cal-ev .rep{font-size:8px;color:var(--spec-amber);margin-right:3px}
+
+  /* ============================================================
+     RESPONSIVE — phones (<= 700px)
+     ============================================================ */
+  @media (max-width:700px){
+    body{padding:20px 14px 70px}
+    .wrap{max-width:100%}
+
+    header.bar{margin-bottom:26px;gap:14px}
+    .brand h1{font-size:34px;letter-spacing:.1em}
+    .brand .kicker{font-size:9px;letter-spacing:.32em}
+    .head-right{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:10px}
+    .clock{font-size:10px;line-height:1.7;text-align:left}
+    .tabs{flex:0 0 auto}
+    .tab{padding:8px 16px;font-size:10px}
+
+    .upcoming{flex-direction:column;margin-bottom:26px}
+    .up-label{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;min-width:0;width:100%;border-right:none;border-bottom:1px solid var(--line);padding:14px 18px}
+    .up-label .ic{font-size:18px}
+    .up-item{min-width:150px;padding:14px 16px}
+
+    .metrics{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+    .metric{padding:15px 15px 14px}
+    .metric .lab{font-size:8px;letter-spacing:.18em}
+    .metric .val{font-size:30px;margin-top:8px}
+    .metric .val small{font-size:12px}
+    .diff-split{gap:10px;margin-top:10px}
+    .diff-split .ds b{font-size:17px}
+    .diff-split .ds{font-size:11px}
+
+    .echo{padding:15px 18px;margin-bottom:30px;font-size:13px}
+    .sec-title{font-size:9.5px;letter-spacing:.28em;margin:6px 2px 16px}
+
+    .today{padding:20px}
+    .today-head{gap:18px;margin-bottom:20px}
+    .today-head .ring-big,.today-head .ring-big svg{width:92px;height:92px}
+    .today-head .title h2{font-size:21px}
+    .today-list{grid-template-columns:1fr;gap:8px}
+
+    .toolbar{gap:10px}
+    .controls{width:100%}
+    .controls .btn{flex:1;text-align:center;justify-content:center;padding:10px 8px;font-size:10px}
+
+    .cat{margin-bottom:34px}
+    .cat-head{gap:10px 12px}
+    .cat-head h3{font-size:19px;flex:1 1 100%;order:-1}
+    .cat-order{order:-2}
+    .cat-prog{margin-left:0}
+    .cat-prog .cp-bar{width:70px}
+    .cat-tally{gap:10px;font-size:10px}
+    .tally{font-size:10px}
+    .cat-head .count,.cat-head .del{font-size:9px}
+
+    .cards{grid-template-columns:1fr;gap:14px}
+    .card{padding:20px}
+
+    .calendar{padding:12px}
+    .cal-grid{gap:4px}
+    .cal-cell{min-height:62px;padding:5px;border-radius:8px;gap:3px}
+    .cal-date{font-size:11px}
+    .cal-dow{font-size:8px;letter-spacing:.1em;padding:4px 0}
+    .cal-ev{font-size:8.5px;padding:2px 4px}
+    .cal-ev .t{font-size:7.5px}
+    .cal-month{font-size:17px;min-width:0}
+    .cal-nav{gap:8px}
+    .memo-dot{font-size:11px}
+
+    .modal{padding:24px 20px}
+    .type-toggle .ty-btn{font-size:11px;padding:10px 6px}
+  }
+
+  @media (max-width:380px){
+    .brand h1{font-size:29px}
+    .cal-cell{min-height:54px}
+    .cal-ev{font-size:7.5px}
+  }
 </style>
 </head>
 <body>
