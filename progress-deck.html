@@ -12,6 +12,52 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500&family=Noto+Sans+JP:wght@200;300;400;500&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD9h01ojm1udmPDa1P-5UzSfcs0_Q6cbg0",
+    authDomain: "progress-deck.firebaseapp.com",
+    databaseURL: "https://progress-deck-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "progress-deck",
+    storageBucket: "progress-deck.firebasestorage.app",
+    messagingSenderId: "22418933605",
+    appId: "1:22418933605:web:c1d4985c452572685e438c"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const dataRef = ref(db, 'progressDeck');
+
+  window.firebaseSave = function(data) {
+    set(dataRef, data).then(() => {
+      const el = document.getElementById("lastsave");
+      if(el) el.textContent = "SAVED · " + new Date().toLocaleTimeString("ja-JP");
+    }).catch(e => console.error("Firebase save error:", e));
+  };
+
+  onValue(dataRef, (snapshot) => {
+    const val = snapshot.val();
+    if(val && val.cats && val.routine) {
+      window._firebaseData = val;
+    } else {
+      // Firebaseにデータなし → localStorageから移行を試みる
+      const local = localStorage.getItem("progressDeck.v2");
+      if(local) {
+        try {
+          const parsed = JSON.parse(local);
+          if(parsed && parsed.cats && parsed.routine) {
+            window._firebaseData = parsed;
+            window.firebaseSave(parsed);
+          }
+        } catch(e) {}
+      }
+      if(!window._firebaseData) window._firebaseData = null;
+    }
+    if(window._onFirebaseReady) window._onFirebaseReady(window._firebaseData);
+  }, { onlyOnce: false });
+</script>
 <style>
   :root{
     /* ---- spectrum (poster): dusty orange → red → green → blue, all desaturated & dark ---- */
@@ -680,10 +726,9 @@ function routineDayKey(d=new Date()){
   return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
 }
 
-let data=load();
+let data=defaultData();
 
-function load(){
-  try{const d=JSON.parse(localStorage.getItem(STORE));if(d&&d.cats&&d.routine)return migrate(d);}catch(e){}
+function defaultData(){
   return {
     routine:{
       items:[
@@ -691,11 +736,11 @@ function load(){
         {id:uid(),t:"水をしっかり飲む"},
         {id:uid(),t:"23時には画面を閉じる"}
       ],
-      log:{},          // dayKey -> { itemId: true/false }
-      notes:{},        // dayKey -> string
+      log:{},
+      notes:{},
       currentDay:routineDayKey(),
-      adhoc:[],        // 単発タスク [{id,t,on}] 未完了は繰り越し・完了で非表示(データ保持)
-      achieve:{}       // dayKey -> 達成数(その日に+1された回数)。累計/今日/今週はここから算出
+      adhoc:[],
+      achieve:{}
     },
     cats:[
       {id:uid(),name:"仕事",goals:[
@@ -710,6 +755,18 @@ function load(){
     events:[]
   };
 }
+
+// Firebaseの初回ロード完了後に呼ばれる
+window._onFirebaseReady = function(fbData) {
+  window._firebaseReady = true;
+  if(fbData && fbData.cats && fbData.routine) {
+    data = migrate(fbData);
+  } else {
+    data = defaultData();
+  }
+  rolloverIfNeeded();
+  render();
+};
 function migrate(d){
   d.cats.forEach(c=>{
     const inherited=c.cal||"mid";
@@ -725,8 +782,9 @@ function migrate(d){
   return d;
 }
 function uid(){return Math.random().toString(36).slice(2,9)}
-function save(){localStorage.setItem(STORE,JSON.stringify(data));
-  document.getElementById("lastsave").textContent="SAVED · "+new Date().toLocaleTimeString("ja-JP")}
+function save(){
+  if(window.firebaseSave) window.firebaseSave(data);
+}
 
 // ---- rollover: if the routine day changed, commit yesterday's state to log
 function rolloverIfNeeded(){
@@ -1374,7 +1432,14 @@ function downloadICS(id){
 // close modals on backdrop click
 document.getElementById("eventModal").addEventListener("click",e=>{if(e.target.id==="eventModal")closeEvent()});
 
-render();
+// Firebaseのロードが間に合わなかった場合のフォールバック（タイムアウト3秒）
+setTimeout(()=>{
+  if(!window._firebaseReady){
+    data=defaultData();
+    rolloverIfNeeded();
+    render();
+  }
+}, 3000);
 </script>
 </body>
 </html>
