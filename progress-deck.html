@@ -19,10 +19,10 @@
     --spec-indigo:#2a3d6b;
 
     /* ink — never pure white. paper-grey hierarchy */
-    --ink:#e7e3da;
-    --ink-2:#a8a39a;
-    --ink-3:#6f6b63;
-    --ink-4:#48453f;
+    --ink:#f0ece3;
+    --ink-2:#bdb8ae;
+    --ink-3:#8f8a80;
+    --ink-4:#6b665d;
 
     /* surfaces — near-black, barely-there */
     --bg:#070707;
@@ -115,7 +115,7 @@
   /* ============ metrics ============ */
   .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:18px;margin-bottom:30px}
   .metric{padding:24px 24px 22px;position:relative;overflow:hidden}
-  .metric .lab{font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
+  .metric .lab{font-size:10.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
   .metric .val{font-size:46px;font-weight:100;margin-top:14px;letter-spacing:.01em;line-height:1;color:var(--ink)}
   .metric .val small{font-size:15px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
   .metric.accent .val{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -144,7 +144,7 @@
   .routine .halo{display:none}
   .routine-head{display:flex;align-items:center;gap:32px;flex-wrap:wrap;margin-bottom:34px}
   .routine-head .title{flex:1;min-width:200px}
-  .routine-head .title .k{font-size:9.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
+  .routine-head .title .k{font-size:10.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
   .routine-head .title h2{font-size:25px;font-weight:200;margin-top:10px;letter-spacing:.05em}
   .routine-head .title .sub{font-size:12px;color:var(--ink-3);margin-top:10px;letter-spacing:.06em;font-family:"Roboto Mono",monospace;font-weight:300}
 
@@ -152,12 +152,12 @@
   .ring-big svg{transform:rotate(-90deg)}
   .ring-big .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .ring-big .center .num{font-size:34px;font-weight:100;color:var(--ink)}
-  .ring-big .center .cap{font-size:8.5px;letter-spacing:.34em;color:var(--ink-3);text-transform:uppercase;margin-top:5px}
+  .ring-big .center .cap{font-size:9.5px;letter-spacing:.34em;color:var(--ink-3);text-transform:uppercase;margin-top:5px}
 
   .perfect{display:flex;gap:14px;flex-wrap:wrap;margin-left:auto}
   .stat{text-align:center;padding:18px 22px;border:1px solid var(--line);border-radius:14px;background:var(--panel);min-width:104px}
   .stat .n{font-size:30px;font-weight:100;color:var(--ink)}
-  .stat .l{font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;line-height:1.7}
+  .stat .l{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;line-height:1.7}
 
   .rt-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:11px;margin-bottom:24px}
   .rt-check{display:flex;align-items:center;gap:13px;padding:15px 17px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease)}
@@ -169,7 +169,7 @@
   .rt-check .t{flex:1;font-size:13.5px;outline:none;font-weight:300;letter-spacing:.02em}
   .rt-check .t:focus{color:var(--ink)}
   .rt-check.on .t{color:var(--ink-2)}
-  .rt-check .rate{font-size:9.5px;color:var(--ink-4);letter-spacing:.08em;font-family:"Roboto Mono",monospace;font-variant-numeric:tabular-nums}
+  .rt-check .rate{font-size:10.5px;color:var(--ink-4);letter-spacing:.08em;font-family:"Roboto Mono",monospace;font-variant-numeric:tabular-nums}
   .rt-check .x{opacity:0;cursor:pointer;color:var(--ink-4);font-size:12px;transition:.18s}
   .rt-check:hover .x{opacity:1}
   .rt-check .x:hover{color:var(--cal-high)}
@@ -177,22 +177,22 @@
   .add-rt:hover{color:var(--spec-amber)}
 
   .rt-note{margin-bottom:30px}
-  .rt-note .lab{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+  .rt-note .lab{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:12px;display:flex;align-items:center;gap:9px}
   textarea.note{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;color:var(--ink);
     padding:15px 16px;font-size:13.5px;line-height:1.75;font-family:inherit;font-weight:300;resize:vertical;min-height:62px;letter-spacing:.02em}
   textarea.note:focus{outline:none;border-color:var(--line-2)}
   textarea.note::placeholder{color:var(--ink-4)}
 
   /* ============ analytics ============ */
-  .analytics .lab{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:15px}
+  .analytics .lab{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:15px}
   .heat{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
   .day{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);position:relative;cursor:default;
-    display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--ink-4);font-family:"Roboto Mono",monospace}
+    display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-4);font-family:"Roboto Mono",monospace}
   .day[data-lvl="full"]{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent;color:#150a04}
   .day[data-lvl="part"]{background:rgba(224,145,63,.22);border-color:rgba(224,145,63,.32)}
   .day[data-lvl="none"]{background:rgba(191,91,84,.12);border-color:rgba(191,91,84,.3)}
   .day[data-lvl="empty"]{background:rgba(255,255,255,.02)}
-  .heat-legend{font-size:9.5px;color:var(--ink-4);letter-spacing:.1em;display:flex;gap:18px;align-items:center;flex-wrap:wrap;text-transform:uppercase}
+  .heat-legend{font-size:10.5px;color:var(--ink-4);letter-spacing:.1em;display:flex;gap:18px;align-items:center;flex-wrap:wrap;text-transform:uppercase}
   .lg{display:inline-flex;align-items:center;gap:6px}
   .lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
   .breakdown{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
@@ -209,14 +209,14 @@
   .cat-head h3{font-size:22px;font-weight:200;flex:1;outline:none;min-width:120px;letter-spacing:.07em}
   .cat-head h3:focus{color:var(--ink)}
   .cal-toggle{display:flex;gap:7px;align-items:center}
-  .cal-toggle .cl{font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);margin-right:5px}
+  .cal-toggle .cl{font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);margin-right:5px}
   .cal-btn{font-size:10px;padding:6px 13px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--ink-3);cursor:pointer;font-family:inherit;transition:.18s;letter-spacing:.1em;text-transform:uppercase}
   .cal-btn:hover{color:var(--ink-2)}
   .cal-btn.active[data-cal="low"]{background:var(--cal-low);border-color:transparent;color:#0c1a11;font-weight:500}
   .cal-btn.active[data-cal="mid"]{background:var(--cal-mid);border-color:transparent;color:#1f1503;font-weight:500}
   .cal-btn.active[data-cal="high"]{background:var(--cal-high);border-color:transparent;color:#1f0a08;font-weight:500}
-  .cat-head .count{font-size:9.5px;color:var(--ink-4);letter-spacing:.16em;font-family:"Roboto Mono",monospace}
-  .cat-head .del{font-size:9.5px;color:var(--ink-4);cursor:pointer;letter-spacing:.14em;text-transform:uppercase}
+  .cat-head .count{font-size:10.5px;color:var(--ink-4);letter-spacing:.16em;font-family:"Roboto Mono",monospace}
+  .cat-head .del{font-size:10.5px;color:var(--ink-4);cursor:pointer;letter-spacing:.14em;text-transform:uppercase}
   .cat-head .del:hover{color:var(--cal-high)}
 
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
@@ -228,7 +228,7 @@
   .card.dragging{opacity:.35;transform:scale(.97)}
   .card.over{box-shadow:0 0 0 1px var(--ink-3) inset}
   .card.done::after{content:"COMPLETE";position:absolute;top:18px;right:-34px;transform:rotate(45deg);z-index:2;
-    background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#150a04;font-size:8px;font-weight:600;letter-spacing:.22em;padding:4px 38px}
+    background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#150a04;font-size:9px;font-weight:600;letter-spacing:.22em;padding:4px 38px}
   .card-top{display:flex;gap:16px;align-items:flex-start}
   .grip{flex:0 0 auto;cursor:grab;color:var(--ink-4);padding-top:6px;user-select:none;font-size:13px;letter-spacing:1px;line-height:1}
   .grip:active{cursor:grabbing}
@@ -238,7 +238,7 @@
   .card-title{flex:1;min-width:0}
   .card-title .name{font-size:16px;font-weight:300;line-height:1.4;word-break:break-word;outline:none;letter-spacing:.02em}
   .card-title .name:focus{color:var(--ink)}
-  .card-title .meta{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-4);margin-top:9px;font-family:"Roboto Mono",monospace}
+  .card-title .meta{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-4);margin-top:9px;font-family:"Roboto Mono",monospace}
 
   .slider-row{margin:20px 0 6px}
   input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;width:100%;cursor:pointer;
@@ -248,10 +248,10 @@
   .slider-row.auto{display:flex;align-items:center;gap:11px}
   .auto-bar{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
   .auto-bar i{display:block;height:100%;border-radius:3px;background:var(--cat,var(--spec-amber));transition:width .4s var(--ease)}
-  .auto-note{font-size:8.5px;letter-spacing:.1em;color:var(--ink-4);white-space:nowrap}
+  .auto-note{font-size:9.5px;letter-spacing:.1em;color:var(--ink-4);white-space:nowrap}
 
   .checks{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
-  .clab{font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400;margin-bottom:11px}
+  .clab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400;margin-bottom:11px}
   .check{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px;color:var(--ink-2);font-weight:300}
   .check .box{width:16px;height:16px;border-radius:5px;border:1.4px solid var(--line-2);flex:0 0 auto;cursor:pointer;position:relative;transition:.18s}
   .check .box:hover{border-color:var(--spec-amber)}
@@ -274,9 +274,9 @@
   .today-head .ring-big svg{transform:rotate(-90deg)}
   .today-head .ring-big .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .today-head .ring-big .center .num{font-size:32px;font-weight:100;color:var(--ink)}
-  .today-head .ring-big .center .cap{font-size:8.5px;letter-spacing:.34em;color:var(--ink-3);text-transform:uppercase;margin-top:5px}
+  .today-head .ring-big .center .cap{font-size:9.5px;letter-spacing:.34em;color:var(--ink-3);text-transform:uppercase;margin-top:5px}
   .today-head .title{flex:1;min-width:200px}
-  .today-head .title .k{font-size:9.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
+  .today-head .title .k{font-size:10.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
   .today-head .title h2{font-size:25px;font-weight:200;margin-top:10px;letter-spacing:.05em}
   .today-head .title .sub{font-size:12px;color:var(--ink-3);margin-top:10px;letter-spacing:.06em;font-family:"Roboto Mono",monospace;font-weight:300}
   .today-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
@@ -289,7 +289,7 @@
   .td-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
   .td-text .t{font-size:13.5px;font-weight:300;color:var(--ink);letter-spacing:.02em}
   .td-item.on .td-text .t{color:var(--ink-2);text-decoration:line-through;text-decoration-color:var(--ink-4)}
-  .td-text .src{font-size:9.5px;letter-spacing:.06em;color:var(--ink-4);font-family:"Roboto Mono",monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .td-text .src{font-size:10.5px;letter-spacing:.06em;color:var(--ink-4);font-family:"Roboto Mono",monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .td-item .star{cursor:pointer;font-size:14px;color:var(--spec-amber);flex:0 0 auto;transition:.18s}
   .td-item .star:hover{filter:brightness(1.3)}
   .today-empty{padding:30px 8px;text-align:center;color:var(--ink-3);font-size:13px;font-weight:300;line-height:1.9;letter-spacing:.03em}
@@ -297,16 +297,16 @@
 
 
   .notes{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
-  .nlab{font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
+  .nlab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
   .card-foot{display:flex;justify-content:flex-end;margin-top:16px}
-  .del-g{font-size:9px;color:var(--ink-4);cursor:pointer;letter-spacing:.16em;text-transform:uppercase}
+  .del-g{font-size:10px;color:var(--ink-4);cursor:pointer;letter-spacing:.16em;text-transform:uppercase}
   .del-g:hover{color:var(--cal-high)}
 
   .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
     border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
   .add-goal:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
 
-  footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);font-size:9.5px;color:var(--ink-4);
+  footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink-4);
     letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:"Roboto Mono",monospace}
 
   .modal-bg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;
@@ -320,7 +320,7 @@
 
   /* ---- per-task difficulty toggle (inside card) ---- */
   .cal-row{display:flex;align-items:center;gap:11px;margin-top:16px}
-  .cal-lab{font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400}
+  .cal-lab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400}
   .cal-toggle{display:flex;gap:6px;align-items:center}
   .cal-toggle .cl{display:none}
 
@@ -346,7 +346,7 @@
   /* ============ upcoming events banner ============ */
   .upcoming{display:flex;align-items:stretch;gap:0;margin-bottom:44px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(16px);overflow:hidden}
   .up-label{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:22px 26px;border-right:1px solid var(--line);min-width:172px}
-  .up-label .k{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
+  .up-label .k{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
   .up-label .ic{font-size:21px;font-weight:100;color:var(--ink);letter-spacing:.04em}
   .up-list{flex:1;display:flex;gap:0;overflow-x:auto}
   .up-item{flex:0 0 auto;min-width:182px;padding:20px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
@@ -361,11 +361,12 @@
   .cal-nav{display:flex;align-items:center;gap:12px}
   .cal-month{font-size:20px;font-weight:200;letter-spacing:.08em;min-width:160px;text-align:center}
   .calendar{padding:24px}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:120px;gap:8px}
-  .cal-dow{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);text-align:center;padding:6px 0;font-weight:400}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(120px,auto);gap:8px}
+  .cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:6px}
+  .cal-dow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);text-align:center;padding:2px 0;font-weight:400}
   .cal-dow.sun{color:var(--cal-high)}
   .cal-dow.sat{color:var(--spec-blue)}
-  .cal-cell{height:100%;border:1px solid var(--line);border-radius:11px;padding:9px;background:var(--panel);display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:.18s var(--ease);position:relative;overflow:hidden}
+  .cal-cell{min-height:120px;border:1px solid var(--line);border-radius:11px;padding:8px;background:var(--panel);display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:.18s var(--ease);position:relative}
   .cal-cell:hover{border-color:var(--line-2);background:rgba(255,255,255,.025)}
   .cal-cell.blank{background:transparent;border-color:transparent;cursor:default}
   .cal-cell.blank:hover{background:transparent}
@@ -376,10 +377,10 @@
   .memo-marks{display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end}
   .memo-dot{font-size:12px;color:var(--cal-low);cursor:pointer;line-height:1;transition:.15s}
   .memo-dot:hover{color:var(--spec-amber);filter:brightness(1.3)}
-  .cal-ev{font-size:10.5px;line-height:1.35;color:var(--ink);background:linear-gradient(96deg,rgba(224,145,63,.22),rgba(184,68,62,.18));border-left:2px solid var(--spec-amber);border-radius:4px;padding:3px 6px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:.15s}
+  .cal-ev{font-size:10.5px;line-height:1.3;color:var(--ink);background:linear-gradient(96deg,rgba(224,145,63,.22),rgba(184,68,62,.18));border-left:2px solid var(--spec-amber);border-radius:4px;padding:2px 6px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:.15s}
   .cal-ev:hover{filter:brightness(1.2)}
-  .cal-ev .t{font-family:"Roboto Mono",monospace;font-size:9px;color:var(--spec-amber);margin-right:4px}
-  .cal-more{font-size:9px;color:var(--ink-4);letter-spacing:.04em}
+  .cal-ev .t{font-family:"Roboto Mono",monospace;font-size:10px;color:var(--spec-amber);margin-right:4px}
+  .cal-more{font-size:10px;color:var(--ink-4);letter-spacing:.04em}
 
   /* event modal extras */
   .modal input[type=date],.modal input[type=time]{font-family:"Roboto Mono",monospace;color-scheme:dark}
@@ -391,14 +392,14 @@
   .type-toggle{display:flex;gap:6px;margin-bottom:20px;border:1px solid var(--line);border-radius:11px;padding:4px;background:rgba(0,0,0,.2)}
   .ty-btn{flex:1;background:transparent;border:none;color:var(--ink-3);font-family:inherit;font-size:12px;padding:9px;border-radius:8px;cursor:pointer;transition:.2s;letter-spacing:.06em}
   .ty-btn.active{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#1a0d06;font-weight:500}
-  .modal label{display:block;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px;font-weight:400}
+  .modal label{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px;font-weight:400}
   .modal select{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:12px;font-size:13px;font-family:inherit;font-weight:300;color-scheme:dark}
   .modal select:focus{outline:none;border-color:var(--line-2)}
   .modal select option{background:#15110d;color:var(--ink)}
 
   /* ---- category reorder + project progress ---- */
   .cat-order{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
-  .cat-order .ord{background:transparent;border:1px solid var(--line);color:var(--ink-3);border-radius:6px;width:24px;height:18px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;padding:0}
+  .cat-order .ord{background:transparent;border:1px solid var(--line);color:var(--ink-3);border-radius:6px;width:24px;height:18px;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;padding:0}
   .cat-order .ord:hover{border-color:var(--ink-2);color:var(--ink)}
   .cat-order .ord.off{opacity:.25;pointer-events:none}
   .cat-prog{display:flex;align-items:center;gap:9px;margin-left:4px}
@@ -409,7 +410,7 @@
   /* ---- memo-type event in calendar ---- */
   .cal-ev.memo{background:linear-gradient(96deg,rgba(95,143,107,.22),rgba(47,111,114,.18));border-left-color:var(--cal-low)}
   .cal-ev.memo .t{color:var(--cal-low)}
-  .cal-ev .rep{font-size:8px;color:var(--spec-amber);margin-right:3px}
+  .cal-ev .rep{font-size:9px;color:var(--spec-amber);margin-right:3px}
 
   /* ============================================================
      RESPONSIVE — phones (<= 700px)
@@ -420,7 +421,7 @@
 
     header.bar{margin-bottom:26px;gap:14px}
     .brand h1{font-size:34px;letter-spacing:.1em}
-    .brand .kicker{font-size:9px;letter-spacing:.32em}
+    .brand .kicker{font-size:10px;letter-spacing:.32em}
     .head-right{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:10px}
     .clock{font-size:10px;line-height:1.7;text-align:left}
     .tabs{flex:0 0 auto}
@@ -433,7 +434,7 @@
 
     .metrics{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
     .metric{padding:15px 15px 14px}
-    .metric .lab{font-size:8px;letter-spacing:.18em}
+    .metric .lab{font-size:9px;letter-spacing:.18em}
     .metric .val{font-size:30px;margin-top:8px}
     .metric .val small{font-size:12px}
     .diff-split{gap:10px;margin-top:10px}
@@ -441,7 +442,7 @@
     .diff-split .ds{font-size:11px}
 
     .echo{padding:15px 18px;margin-bottom:30px;font-size:13px}
-    .sec-title{font-size:9.5px;letter-spacing:.28em;margin:6px 2px 16px}
+    .sec-title{font-size:10.5px;letter-spacing:.28em;margin:6px 2px 16px}
 
     .today{padding:20px}
     .today-head{gap:18px;margin-bottom:20px}
@@ -461,18 +462,18 @@
     .cat-prog .cp-bar{width:70px}
     .cat-tally{gap:10px;font-size:10px}
     .tally{font-size:10px}
-    .cat-head .count,.cat-head .del{font-size:9px}
+    .cat-head .count,.cat-head .del{font-size:10px}
 
     .cards{grid-template-columns:1fr;gap:14px}
     .card{padding:20px}
 
     .calendar{padding:12px}
-    .cal-grid{grid-auto-rows:74px;gap:4px}
-    .cal-cell{min-height:62px;padding:5px;border-radius:8px;gap:3px}
+    .cal-grid{grid-auto-rows:minmax(74px,auto);gap:4px}
+    .cal-cell{min-height:74px;padding:5px;border-radius:8px;gap:3px}
     .cal-date{font-size:11px}
-    .cal-dow{font-size:8px;letter-spacing:.1em;padding:4px 0}
-    .cal-ev{font-size:8.5px;padding:2px 4px}
-    .cal-ev .t{font-size:7.5px}
+    .cal-dow{font-size:9px;letter-spacing:.1em;padding:4px 0}
+    .cal-ev{font-size:9.5px;padding:2px 4px}
+    .cal-ev .t{font-size:8.5px}
     .cal-month{font-size:17px;min-width:0}
     .cal-nav{gap:8px}
     .memo-dot{font-size:11px}
@@ -483,8 +484,8 @@
 
   @media (max-width:380px){
     .brand h1{font-size:29px}
-    .cal-cell{min-height:54px}
-    .cal-ev{font-size:7.5px}
+    .cal-cell{min-height:66px}
+    .cal-ev{font-size:8.5px}
   }
 </style>
 </head>
@@ -989,6 +990,7 @@ function setView(v){
 // ======================================================================
 let calCursor=new Date(); calCursor.setDate(1);
 const DOW=["日","月","火","水","木","金","土"];
+const DOW_EN=["SUN","MON","TUE","WED","THU","FRI","SAT"];
 
 function dateKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function calShift(n){calCursor.setMonth(calCursor.getMonth()+n);renderCalendar()}
@@ -1028,8 +1030,9 @@ function renderCalendar(){
   const daysInMonth=new Date(y,m+1,0).getDate();
   const todayKey=dateKey(new Date());
 
+  let dows="";
+  DOW_EN.forEach((d,i)=>{dows+=`<div class="cal-dow ${i===0?'sun':''}${i===6?'sat':''}">${d}</div>`});
   let cells="";
-  DOW.forEach((d,i)=>{cells+=`<div class="cal-dow ${i===0?'sun':''}${i===6?'sat':''}">${d}</div>`});
   for(let i=0;i<startDow;i++)cells+=`<div class="cal-cell blank"></div>`;
   for(let day=1;day<=daysInMonth;day++){
     const d=new Date(y,m,day), key=dateKey(d);
@@ -1038,11 +1041,10 @@ function renderCalendar(){
     const memos=all.filter(e=>e.kind==="memo");
     const isToday=key===todayKey;
     // events: show title (as before)
-    let evHTML=events.slice(0,2).map(e=>{
+    let evHTML=events.map(e=>{
       const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
       return `<div class="cal-ev" onclick="event.stopPropagation();openEvent('${e.id}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
     }).join("");
-    if(events.length>2)evHTML+=`<div class="cal-more">+${events.length-2} 件</div>`;
     // memos: marks only, no text (private). click to open detail.
     const memoMarks=memos.map(e=>
       `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openEvent('${e.id}')">◍</span>`
@@ -1051,7 +1053,7 @@ function renderCalendar(){
     cells+=`<div class="cal-cell ${isToday?'today':''}" onclick="openEvent(null,'${key}')">
       ${dateRow}${evHTML}</div>`;
   }
-  el.innerHTML=`<div class="cal-grid">${cells}</div>`;
+  el.innerHTML=`<div class="cal-dow-row">${dows}</div><div class="cal-grid">${cells}</div>`;
 }
 
 // ======================================================================
