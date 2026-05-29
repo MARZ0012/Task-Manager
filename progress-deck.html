@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500&family=Noto+Sans+JP:wght@200;300;400;500&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-auth-compat.min.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyD9h01ojm1udmPDa1P-5UzSfcs0_Q6cbg0",
@@ -27,6 +28,7 @@
   firebase.initializeApp(firebaseConfig);
   const _fbDb = firebase.database();
   const _fbRef = _fbDb.ref('progressDeck');
+  const _fbAuth = firebase.auth();
 
   window.firebaseSave = function(data) {
     _fbRef.set(data).then(() => {
@@ -35,26 +37,69 @@
     }).catch(e => console.error("Firebase save error:", e));
   };
 
-  window._fbReady = false;
-  _fbRef.once('value', (snapshot) => {
-    window._fbReady = true;
-    const val = snapshot.val();
-    if(val && val.cats && val.routine) {
-      window._firebaseData = val;
-    } else {
-      const local = localStorage.getItem("progressDeck.v2");
-      if(local) {
-        try {
-          const parsed = JSON.parse(local);
-          if(parsed && parsed.cats && parsed.routine) {
-            window._firebaseData = parsed;
-            window.firebaseSave(parsed);
-          }
-        } catch(e) {}
+  // 実際にデータを読み込む処理（ログイン成功後にだけ呼ぶ）
+  function _loadFromFirebase() {
+    _fbRef.once('value', (snapshot) => {
+      window._fbReady = true;
+      const val = snapshot.val();
+      if(val && val.cats && val.routine) {
+        window._firebaseData = val;
+      } else {
+        const local = localStorage.getItem("progressDeck.v2");
+        if(local) {
+          try {
+            const parsed = JSON.parse(local);
+            if(parsed && parsed.cats && parsed.routine) {
+              window._firebaseData = parsed;
+              window.firebaseSave(parsed);
+            }
+          } catch(e) {}
+        }
+        if(!window._firebaseData) window._firebaseData = null;
       }
-      if(!window._firebaseData) window._firebaseData = null;
+      if(window._onFirebaseReady) window._onFirebaseReady(window._firebaseData);
+    }, (err) => {
+      // 読み込みが拒否された（ルールで弾かれた等）場合
+      console.error("Firebase read error:", err);
+      window._fbAuthError = "DBアクセスが拒否されました（ルール設定を確認してください）";
+      _showUid();
+    });
+  }
+
+  // 自分のUIDを画面に表示する（ステップ3でルールに登録するため）
+  function _showUid() {
+    const user = _fbAuth.currentUser;
+    let box = document.getElementById("uidBox");
+    if(!box){
+      box = document.createElement("div");
+      box.id = "uidBox";
+      box.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;"
+        + "background:rgba(20,17,13,.95);border:1px solid rgba(224,145,63,.5);border-radius:12px;"
+        + "padding:12px 16px;font-family:'Roboto Mono',monospace;font-size:12px;color:#f0ece3;"
+        + "max-width:92vw;line-height:1.7;letter-spacing:.02em;box-shadow:0 8px 30px rgba(0,0,0,.5)";
+      document.body.appendChild(box);
     }
-    if(window._onFirebaseReady) window._onFirebaseReady(window._firebaseData);
+    const uid = user ? user.uid : "(未ログイン)";
+    const errLine = window._fbAuthError ? `<div style="color:#bf5b54;margin-top:6px">${window._fbAuthError}</div>` : "";
+    box.innerHTML = `<div style="color:#e0913f;letter-spacing:.2em;margin-bottom:6px">YOUR DEVICE UID</div>`
+      + `<div style="user-select:all;word-break:break-all;color:#f0ece3">${uid}</div>`
+      + `<div style="color:#8f8a80;margin-top:6px;font-size:10.5px">↑長押し/クリックでコピーして共有してください</div>`
+      + errLine
+      + `<div onclick="document.getElementById('uidBox').remove()" style="color:#8f8a80;cursor:pointer;text-align:right;margin-top:8px">閉じる ✕</div>`;
+  }
+  window._showUid = _showUid;
+
+  window._fbReady = false;
+  // まず匿名ログイン。成功したらデータ読み込みへ。
+  _fbAuth.signInAnonymously().catch((e) => {
+    console.error("匿名ログイン失敗:", e);
+    window._fbAuthError = "匿名ログインに失敗しました（Authentication設定を確認）";
+  });
+  _fbAuth.onAuthStateChanged((user) => {
+    if(user){
+      _showUid();          // UIDを画面下部に表示
+      _loadFromFirebase(); // ログインできたのでデータ読み込み
+    }
   });
 </script>
 <style>
