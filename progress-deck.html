@@ -401,6 +401,56 @@
   .cal-cell.past{opacity:.4}
   .cal-cell.past:hover{opacity:.7}
 
+  /* 完了済み単発タスク（当日はクロスアウトで残す） */
+  .td-item.on{opacity:.45;background:var(--panel)}
+  .td-item.on .td-text .t{text-decoration:line-through;text-decoration-color:var(--ink-4);color:var(--ink-3)}
+  .td-item.on .box{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent}
+  .td-item.on .box::after{content:"";position:absolute;left:6px;top:2px;width:4px;height:10px;border:solid #150a04;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .td-item.on:hover{opacity:.7}
+
+  /* カウンターから追加する導線（今日やること内） */
+  .td-counter-pick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .tcp-lab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);font-weight:400}
+  .tcp-chip{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:9px;
+    padding:7px 13px;font-size:12px;font-family:inherit;cursor:pointer;letter-spacing:.04em;transition:.18s var(--ease);font-weight:300}
+  .tcp-chip:hover{border-color:var(--spec-amber);color:var(--ink);background:rgba(224,145,63,.06)}
+
+  /* クリック可能メトリクス */
+  .metric.clickable{cursor:pointer;transition:.2s var(--ease)}
+  .metric.clickable:hover{border-color:var(--line-2);background:var(--panel-2)}
+  .metric .metric-hint{font-size:9px;letter-spacing:.12em;color:var(--ink-4);margin-top:10px;text-transform:uppercase}
+
+  /* カウンター群 */
+  .counters-wrap{margin-bottom:30px}
+  .counters-head{font-size:10.5px;letter-spacing:.42em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin:0 2px 16px;display:flex;align-items:center;gap:16px}
+  .counters-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line-2),transparent)}
+  .counters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:14px}
+  .counter-chip{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:18px 18px 14px;
+    display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(14px)}
+  .cc-name{font-size:12px;letter-spacing:.06em;color:var(--ink-2);font-weight:300;outline:none;word-break:break-word}
+  .cc-name:focus{color:var(--ink)}
+  .cc-count{font-size:34px;font-weight:100;color:var(--ink);line-height:1;letter-spacing:.01em}
+  .cc-count small{font-size:13px;color:var(--ink-3);font-weight:300;margin-left:3px}
+  .cc-ctrl{display:flex;align-items:center;gap:7px;margin-top:2px}
+  .cc-btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:8px;
+    width:30px;height:28px;font-size:15px;font-family:inherit;cursor:pointer;transition:.16s;display:flex;align-items:center;justify-content:center;line-height:1}
+  .cc-btn:hover{border-color:var(--spec-amber);color:var(--ink);background:rgba(224,145,63,.06)}
+  .cc-del{margin-left:auto;color:var(--ink-4);cursor:pointer;font-size:11px;transition:.16s}
+  .cc-del:hover{color:var(--cal-high)}
+  .counter-add{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line-2);border-radius:14px;
+    color:var(--ink-4);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:.22s var(--ease);min-height:104px}
+  .counter-add:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
+
+  /* 達成内容パネル */
+  .ap-modal{max-width:420px}
+  .ap-list{display:flex;flex-direction:column;gap:2px;max-height:50vh;overflow-y:auto}
+  .ap-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);font-weight:300}
+  .ap-row:last-child{border-bottom:none}
+  .ap-name{font-size:13.5px;color:var(--ink-2);letter-spacing:.02em;word-break:break-word}
+  .ap-count{font-size:12px;color:var(--spec-amber);font-family:"Roboto Mono",monospace;flex:0 0 auto}
+  .ap-empty{padding:24px 6px;text-align:center;color:var(--ink-3);font-size:13px;font-weight:300;line-height:1.8}
+  .ap-note{font-size:10.5px;color:var(--ink-4);letter-spacing:.04em;margin-top:14px;line-height:1.6}
+
   .notes{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
   .nlab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
   .card-foot{display:flex;justify-content:flex-end;margin-top:16px}
@@ -770,7 +820,12 @@ function defaultData(){
       notes:{},
       currentDay:routineDayKey(),
       adhoc:[],
-      achieve:{}
+      achieve:{},          // dayKey -> 達成数（数値のみ・永久保持）
+      achieveLog:{},       // dayKey -> [完了したタスク名...]（直近1週間のみ保持）
+      counters:[           // 任意の回数カウンター（プール・図書館等）
+        {id:uid(),name:"プール",count:0},
+        {id:uid(),name:"図書館",count:0}
+      ]
     },
     cats:[
       {id:uid(),name:"仕事",goals:[
@@ -814,7 +869,10 @@ function migrate(d){
   if(!Array.isArray(d.routine.items)) d.routine.items = d.routine.items ? Object.values(d.routine.items) : [];
   if(!Array.isArray(d.routine.adhoc)) d.routine.adhoc = d.routine.adhoc ? Object.values(d.routine.adhoc) : [];
   if(!d.routine.achieve)d.routine.achieve={};
+  if(!d.routine.achieveLog)d.routine.achieveLog={};
+  if(!Array.isArray(d.routine.counters)) d.routine.counters = d.routine.counters ? Object.values(d.routine.counters) : [];
   if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
+  pruneAchieveLog(d);   // 直近1週間より古い達成名ログを削除
   return d;
 }
 function uid(){return Math.random().toString(36).slice(2,9)}
@@ -826,10 +884,15 @@ function save(){
 function rolloverIfNeeded(){
   const today=routineDayKey();
   if(data.routine.currentDay!==today){
+    // 日付が変わった：完了済みの単発タスクを掃除（未完了は繰り越し）
+    if(Array.isArray(data.routine.adhoc)){
+      data.routine.adhoc=data.routine.adhoc.filter(a=>!a.on);
+    }
     data.routine.currentDay=today;
   }
   // ensure today's log entry exists
   if(!data.routine.log[today])data.routine.log[today]={};
+  pruneAchieveLog(data);   // 直近1週間より古い達成名ログを掃除
 }
 
 // ====== RENDER ======
@@ -845,9 +908,24 @@ function render(){
 function todayLog(){const k=data.routine.currentDay;if(!data.routine.log[k])data.routine.log[k]={};return data.routine.log[k]}
 
 // ====== 達成カウント（完了するたび+1・取り消しても減らさない） ======
-function bumpAchieve(){
+// nameを渡すと、その完了名を当日ログにも記録する（直近1週間だけ保持）
+function bumpAchieve(name){
   const k=routineDayKey();
   data.routine.achieve[k]=(data.routine.achieve[k]||0)+1;
+  if(name){
+    if(!data.routine.achieveLog[k])data.routine.achieveLog[k]=[];
+    data.routine.achieveLog[k].push(name);
+  }
+}
+// 直近7日（routineDay基準）より古い達成名ログを捨てる。数値achieveは残す。
+function pruneAchieveLog(d){
+  const log=d.routine.achieveLog; if(!log)return;
+  const todayK=routineDayKey();
+  const cutoff=new Date(todayK+"T00:00:00"); cutoff.setDate(cutoff.getDate()-6); // 今日含め7日
+  for(const k in log){
+    const day=new Date(k+"T00:00:00");
+    if(day<cutoff) delete log[k];
+  }
 }
 // 週キー: その日が属する週（月曜始まり）の基準日。routineDayベース。
 function weekStartKey(dayKey){
@@ -869,6 +947,18 @@ function achieveStats(){
   }
   return {total,today,week};
 }
+// 今日 / 今週 完了したタスク名の一覧（achieveLogから。1週間保持なので両方取れる）
+function achieveNames(scope){
+  const log=data.routine.achieveLog||{};
+  const todayK=routineDayKey();
+  const wk=weekStartKey(todayK);
+  const out=[];
+  for(const k in log){
+    const inScope = scope==="today" ? (k===todayK) : (weekStartKey(k)===wk);
+    if(inScope) (log[k]||[]).forEach(n=>out.push(n));
+  }
+  return out;
+}
 
 function renderToday(){
   const el=document.getElementById("today"); if(!el)return;
@@ -887,12 +977,13 @@ function renderToday(){
     });
   }));
 
-  // --- 単発タスク（未完了のみ表示。完了はデータ保持だが非表示） ---
+  // --- 単発タスク（完了済みも当日は残す。翌日のrolloverで完了済みを掃除） ---
   const adhoc=data.routine.adhoc||[];
-  const adhocOpen=adhoc.map((a,i)=>({a,i})).filter(x=>!x.a.on);
+  const adhocAll=adhoc.map((a,i)=>({a,i}));
 
-  const total=steps.length+adhocOpen.length;
+  const openCount=adhocAll.filter(x=>!x.a.on).length + steps.filter(x=>!x.ch.on).length;
   const doneSteps=steps.filter(x=>x.ch.on).length;
+  const totalShown=steps.length+adhocAll.length;
 
   // 今日の予定ブロック
   let evHTML="";
@@ -905,25 +996,35 @@ function renderToday(){
       </div>`).join("")+`</div>`;
   }
 
-  // 単発タスク入力欄
+  // 入力欄 + カウンターから選ぶ導線
+  const counters=data.routine.counters||[];
+  const counterChips = counters.length
+    ? `<div class="td-counter-pick">
+         <span class="tcp-lab">カウンターから追加：</span>
+         ${counters.map(c=>`<button class="tcp-chip" onclick="addCounterTask('${c.id}')">${esc(c.name)} +</button>`).join("")}
+       </div>`
+    : "";
   const addHTML=`<div class="td-add">
     <input id="adhocInput" class="td-add-in" placeholder="今日やることを追加してEnter…" maxlength="80"
       onkeydown="if(event.key==='Enter')addAdhoc()">
     <button class="td-add-btn" onclick="addAdhoc()">追加</button>
-  </div>`;
+  </div>${counterChips}`;
 
   // リスト本体
   let listItems="";
-  // 単発タスク（未完了）
-  adhocOpen.forEach(x=>{
+  // 単発タスク（未完了→上、完了→下に薄く）
+  const sortedAdhoc=[...adhocAll].sort((a,b)=>(a.a.on?1:0)-(b.a.on?1:0));
+  sortedAdhoc.forEach(x=>{
     const active=x.a.active?'active':'';
-    listItems+=`<div class="td-item ${active}">
+    const isCounter=!!x.a.counterId;
+    const srcLabel = isCounter ? `カウンター${x.a.active?' · 着手中':''}` : `単発タスク${x.a.active?' · 着手中':''}`;
+    listItems+=`<div class="td-item ${x.a.on?'on':''} ${active}">
       <div class="box" onclick="toggleAdhoc('${x.a.id}')"></div>
       <div class="td-text">
-        <span class="t" contenteditable spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
-        <span class="src">単発タスク${x.a.active?' · 着手中':''}</span>
+        <span class="t" ${x.a.on?'':'contenteditable'} spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
+        <span class="src">${isCounter?'📊 ':''}${srcLabel}</span>
       </div>
-      <span class="play ${x.a.active?'on':''}" title="着手中にする" onclick="toggleAdhocActive('${x.a.id}')">▸</span>
+      ${x.a.on?'':`<span class="play ${x.a.active?'on':''}" title="着手中にする" onclick="toggleAdhocActive('${x.a.id}')">▸</span>`}
       <span class="x" title="削除" onclick="delAdhoc('${x.a.id}')">✕</span>
     </div>`;
   });
@@ -936,13 +1037,13 @@ function renderToday(){
         <span class="t">${esc(x.ch.t)}</span>
         <span class="src">${esc(x.cat)} · ${esc(x.goal)}${x.ch.active?' · 着手中':''}</span>
       </div>
-      <span class="play ${x.ch.active?'on':''}" title="着手中にする" onclick="toggleStepActive('${x.cid}','${x.gid}',${x.idx})">▸</span>
+      ${x.ch.on?'':`<span class="play ${x.ch.active?'on':''}" title="着手中にする" onclick="toggleStepActive('${x.cid}','${x.gid}',${x.idx})">▸</span>`}
       <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
     </div>`;
   });
 
   let listHTML;
-  if(total===0){
+  if(totalShown===0){
     listHTML=`<div class="today-empty">今日やることはまだありません。<br>上の入力欄で単発タスクを足すか、各プロジェクトのステップで <span class="star-ex">○</span> を押すと、ここに集まります。</div>`;
   }else{
     listHTML=`<div class="today-list">${listItems}</div>`;
@@ -953,7 +1054,7 @@ function renderToday(){
       <div class="title">
         <div class="k">today's focus</div>
         <h2>今日すること</h2>
-        <div class="sub">${total} 件 · ステップ ${doneSteps}/${steps.length} 完了</div>
+        <div class="sub">残り ${openCount} 件 · ステップ ${doneSteps}/${steps.length} 完了</div>
       </div>
     </div>
     ${evHTML}
@@ -976,7 +1077,21 @@ function addAdhoc(){
 function toggleAdhoc(id){
   const a=data.routine.adhoc.find(x=>x.id===id); if(!a)return;
   const was=a.on; a.on=!was;
-  if(!was){a.active=false;bumpAchieve();}  // 完了したら着手中も解除し+1
+  if(!was){
+    // 完了：着手中解除・達成+1・名前ログ記録・カウンター連動
+    a.active=false;
+    bumpAchieve(a.t);
+    if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=(c.count||0)+1;}
+  }else{
+    // 取り消し：カウンターを-1（achieveの数値は減らさない仕様だがカウンターは実数なので戻す）
+    if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=Math.max(0,(c.count||0)-1);}
+  }
+  render();
+}
+// カウンターから今日やることへ追加（紐付きタスク）
+function addCounterTask(counterId){
+  const c=data.routine.counters.find(x=>x.id===counterId); if(!c)return;
+  data.routine.adhoc.push({id:uid(),t:c.name,on:false,active:false,counterId:counterId});
   render();
 }
 function editAdhoc(id,t){const a=data.routine.adhoc.find(x=>x.id===id);if(a){a.t=t;save();}}
@@ -998,7 +1113,7 @@ function toggleStepActive(cid,gid,i){
 // toggle a step's done-state from the Today panel (mirrors the project step)
 function toggleStepFromToday(cid,gid,i){
   const[,g]=findG(cid,gid);
-  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve();}render();}
+  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}render();}
 }
 // toggle the "today" star flag on a step
 function toggleToday(cid,gid,i){
@@ -1135,7 +1250,7 @@ function renameGoal(cid,gid,t){const[,g]=findG(cid,gid);g.name=t;save()}
 function setNote(cid,gid,t){const[,g]=findG(cid,gid);g.note=t;save()}
 function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[]});render()}
 function delGoal(cid,gid){const c=data.cats.find(x=>x.id===cid);c.goals=c.goals.filter(x=>x.id!==gid);render()}
-function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve();}render()}
+function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}render()}
 function editCheck(cid,gid,i,t){const[,g]=findG(cid,gid);g.checks[i].t=t;save()}
 function addCheck(cid,gid){const[,g]=findG(cid,gid);g.checks.push({t:"新しいステップ",on:false});render()}
 function delCheck(cid,gid,i){const[,g]=findG(cid,gid);g.checks.splice(i,1);render()}
@@ -1156,16 +1271,93 @@ function renderMetrics(){
   // ステップ総数 / 達成済（今オンになっているステップ数）
   let stepTotal=0,stepDone=0;
   data.cats.forEach(c=>c.goals.forEach(g=>(g.checks||[]).forEach(ch=>{stepTotal++;if(ch.on)stepDone++;})));
-  // 達成カウント（今日 / 今週 / 累計）
+  // 達成カウント（今日 / 今週）
   const ach=achieveStats();
-  document.getElementById("metrics").innerHTML=
-    metric("TODAY · 今日の達成",ach.today,"","accent")+
-    metric("THIS WEEK · 今週",ach.week,"")+
-    metric("TOTAL · 累計達成",ach.total,"")+
+  // 上段メトリクス（TODAY/THIS WEEK はクリックで完了内容パネル）
+  const top=
+    metricClickable("TODAY · 今日の達成",ach.today,"","accent","showAchievePanel('today')")+
+    metricClickable("THIS WEEK · 今週",ach.week,"","","showAchievePanel('week')")+
     metric("STEPS · 達成/総数",stepDone,"/"+stepTotal)+
     metric("PROJECTS · 抱えている数",projects,"");
+  // カウンター群
+  const counters=data.routine.counters||[];
+  let counterHTML="";
+  const chips=counters.map(c=>`
+    <div class="counter-chip">
+      <div class="cc-name" contenteditable spellcheck="false" oninput="renameCounter('${c.id}',this.textContent)">${esc(c.name)}</div>
+      <div class="cc-count">${c.count||0}<small>回</small></div>
+      <div class="cc-ctrl">
+        <button class="cc-btn" title="-1" onclick="bumpCounter('${c.id}',-1)">−</button>
+        <button class="cc-btn" title="+1" onclick="bumpCounter('${c.id}',1)">＋</button>
+        <span class="cc-del" title="削除" onclick="delCounter('${c.id}')">✕</span>
+      </div>
+    </div>`).join("");
+  counterHTML=`
+    <div class="counters-wrap">
+      <div class="counters-head">COUNTERS · 回数カウンター</div>
+      <div class="counters-grid">
+        ${chips}
+        <div class="counter-add" onclick="addCounter()">＋ 新しいカウンター</div>
+      </div>
+    </div>`;
+  document.getElementById("metrics").innerHTML=top;
+  // カウンターは metrics の直後の専用コンテナへ
+  let cc=document.getElementById("countersBox");
+  if(!cc){
+    cc=document.createElement("div"); cc.id="countersBox";
+    document.getElementById("metrics").insertAdjacentElement("afterend",cc);
+  }
+  cc.innerHTML=counterHTML;
 }
 function metric(lab,val,suf,cls=""){return `<div class="metric glass ${cls}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div></div>`}
+function metricClickable(lab,val,suf,cls,onclick){return `<div class="metric glass clickable ${cls}" onclick="${onclick}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div><div class="metric-hint">タップで内訳 ›</div></div>`}
+
+// ====== カウンター操作 ======
+function addCounter(){
+  const n=prompt("カウンター名（例：プール / 図書館 / ジム）");
+  if(!n||!n.trim())return;
+  data.routine.counters.push({id:uid(),name:n.trim(),count:0});
+  render();
+}
+function renameCounter(id,name){const c=data.routine.counters.find(x=>x.id===id);if(c){c.name=name;save();}}
+function bumpCounter(id,d){const c=data.routine.counters.find(x=>x.id===id);if(c){c.count=Math.max(0,(c.count||0)+d);render();}}
+function delCounter(id){
+  const c=data.routine.counters.find(x=>x.id===id); if(!c)return;
+  if(!confirm(`「${c.name}」カウンターを削除します（累計 ${c.count||0} 回も消えます）。よろしいですか？`))return;
+  data.routine.counters=data.routine.counters.filter(x=>x.id!==id);
+  render();
+}
+
+// ====== 達成内容パネル（今日 / 今週） ======
+function showAchievePanel(scope){
+  const names=achieveNames(scope);
+  const title = scope==="today" ? "今日 完了したこと" : "今週 完了したこと";
+  // 名前ごとに件数を集計
+  const tally={};
+  names.forEach(n=>{tally[n]=(tally[n]||0)+1;});
+  const entries=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+  let body;
+  if(entries.length===0){
+    body=`<div class="ap-empty">まだ記録がありません。タスクやステップを完了すると、ここに残ります。</div>`;
+  }else{
+    body=`<div class="ap-list">`+entries.map(([n,c])=>`
+      <div class="ap-row"><span class="ap-name">${esc(n)}</span><span class="ap-count">${c>1?'×'+c:''}</span></div>`).join("")+`</div>`;
+  }
+  const note = scope==="week"
+    ? `<div class="ap-note">※ 完了内容の記録は直近1週間ぶんを保持しています。</div>` : "";
+  let bg=document.getElementById("achievePanel");
+  if(!bg){
+    bg=document.createElement("div"); bg.id="achievePanel"; bg.className="modal-bg";
+    bg.addEventListener("click",e=>{if(e.target.id==="achievePanel")bg.classList.remove("show");});
+    document.body.appendChild(bg);
+  }
+  bg.innerHTML=`<div class="modal glass ap-modal">
+    <h4>${title} · 計 ${names.length} 件</h4>
+    ${body}${note}
+    <div class="row" style="margin-top:18px"><button class="btn" onclick="document.getElementById('achievePanel').classList.remove('show')">閉じる</button></div>
+  </div>`;
+  bg.classList.add("show");
+}
 
 // ====== DRAG & DROP (reorder within a category) ======
 let dragEl=null;
