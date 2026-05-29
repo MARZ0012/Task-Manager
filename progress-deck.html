@@ -361,11 +361,11 @@
   .cal-nav{display:flex;align-items:center;gap:12px}
   .cal-month{font-size:20px;font-weight:200;letter-spacing:.08em;min-width:160px;text-align:center}
   .calendar{padding:24px}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(104px,1fr);gap:8px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:120px;gap:8px}
   .cal-dow{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);text-align:center;padding:6px 0;font-weight:400}
   .cal-dow.sun{color:var(--cal-high)}
   .cal-dow.sat{color:var(--spec-blue)}
-  .cal-cell{min-height:104px;height:100%;border:1px solid var(--line);border-radius:11px;padding:9px;background:var(--panel);display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:.18s var(--ease);position:relative}
+  .cal-cell{height:100%;border:1px solid var(--line);border-radius:11px;padding:9px;background:var(--panel);display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:.18s var(--ease);position:relative;overflow:hidden}
   .cal-cell:hover{border-color:var(--line-2);background:rgba(255,255,255,.025)}
   .cal-cell.blank{background:transparent;border-color:transparent;cursor:default}
   .cal-cell.blank:hover{background:transparent}
@@ -467,7 +467,7 @@
     .card{padding:20px}
 
     .calendar{padding:12px}
-    .cal-grid{grid-auto-rows:minmax(62px,1fr);gap:4px}
+    .cal-grid{grid-auto-rows:74px;gap:4px}
     .cal-cell{min-height:62px;padding:5px;border-radius:8px;gap:3px}
     .cal-date{font-size:11px}
     .cal-dow{font-size:8px;letter-spacing:.1em;padding:4px 0}
@@ -1038,11 +1038,11 @@ function renderCalendar(){
     const memos=all.filter(e=>e.kind==="memo");
     const isToday=key===todayKey;
     // events: show title (as before)
-    let evHTML=events.slice(0,3).map(e=>{
+    let evHTML=events.slice(0,2).map(e=>{
       const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
       return `<div class="cal-ev" onclick="event.stopPropagation();openEvent('${e.id}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
     }).join("");
-    if(events.length>3)evHTML+=`<div class="cal-more">+${events.length-3} more</div>`;
+    if(events.length>2)evHTML+=`<div class="cal-more">+${events.length-2} 件</div>`;
     // memos: marks only, no text (private). click to open detail.
     const memoMarks=memos.map(e=>
       `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openEvent('${e.id}')">◍</span>`
