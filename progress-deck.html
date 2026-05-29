@@ -389,12 +389,15 @@
   .del-g{font-size:10px;color:var(--ink-4);cursor:pointer;letter-spacing:.16em;text-transform:uppercase}
   .del-g:hover{color:var(--cal-high)}
 
-  .goal-due-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
-  .due-lab{font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);font-weight:400;flex:0 0 auto}
-  .due-input{background:transparent;border:none;border-bottom:1px solid var(--line-2);color:var(--ink-2);font-family:"Roboto Mono",monospace;font-size:12px;padding:2px 4px;color-scheme:dark;cursor:pointer;outline:none}
-  .due-input:focus{border-bottom-color:var(--spec-amber)}
-  .cat-due-input{background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--ink-2);font-family:"Roboto Mono",monospace;font-size:11px;padding:5px 10px;color-scheme:dark;cursor:pointer;outline:none;letter-spacing:.04em;max-width:120px}
-  .cat-due-input:focus{border-color:var(--spec-amber);color:var(--ink-2)}
+  /* ---- goal due (タイトル下インライン) ---- */
+  .goal-due-inline{display:flex;align-items:center;gap:8px;margin-top:5px;position:relative}
+  .due-input-inline{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0}
+  .due-badge-inline{font-size:11px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer}
+  .due-badge-inline.muted{color:var(--ink-4);font-size:10.5px}
+  /* ---- cat due (プロジェクト締め切り) ---- */
+  .cat-due-wrap{position:relative;display:flex;align-items:center}
+  .cat-due-input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0}
+  .cat-due-label{font-size:13px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;padding:4px 10px;border:1px solid rgba(224,145,63,.35);border-radius:8px;white-space:nowrap}
   .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
     border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
   .add-goal:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
@@ -1013,11 +1016,14 @@ function catHTML(c,index,total){
       </div>
       <div class="chip"></div>
       <h3 contenteditable spellcheck="false" oninput="renameCat('${c.id}',this.textContent)">${esc(c.name)}</h3>
-      ${c.due?`<span class="cat-due">⏱ ${c.due.slice(5).replace('-','/')}</span>`:''}
+
       <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
       <div class="cat-tally">${tally}</div>
       <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
-      <input type="date" class="cat-due-input" title="プロジェクト締め切り" value="${c.due||''}" onchange="setCatDue('${c.id}',this.value)">
+      <div class="cat-due-wrap">
+        <input type="date" class="cat-due-input" value="${c.due||''}" onchange="setCatDue('${c.id}',this.value)">
+        <span class="cat-due-label">${c.due?'⏱ '+c.due.slice(5).replace('-','/'):'締め切りを設定'}</span>
+      </div>
       <span class="del" onclick="delCat('${c.id}')">DELETE</span>
     </div>
     <div class="cards" data-cat="${c.id}">
@@ -1071,8 +1077,12 @@ function goalHTML(cid,g){
       </div>
       <div class="card-title">
         <div class="name" contenteditable spellcheck="false" oninput="renameGoal('${cid}','${g.id}',this.textContent)">${esc(g.name)}</div>
+        <div class="goal-due-inline">
+          <input type="date" class="due-input-inline" value="${g.due||''}" onchange="setGoalDue('${cid}','${g.id}',this.value)">
+          ${g.due?`<span class="due-badge-inline">⏱ ${g.due.slice(5).replace('-','/')}</span>`:'<span class="due-badge-inline muted">締め切りを設定</span>'}
+        </div>
         <div class="meta">${prog>=100?'■ COMPLETE':'▸ IN PROGRESS'}</div>
-        ${g.due?`<div class="meta due">⏱ ${g.due}</div>`:''}
+
       </div>
     </div>
     <div class="cal-row">
@@ -1089,11 +1099,6 @@ function goalHTML(cid,g){
       <div class="nlab">課題 / 次に直すこと</div>
       <textarea class="note" placeholder="詰まっている点、次に直すこと、気づき…。責めずに事実だけでOK。"
         oninput="setNote('${cid}','${g.id}',this.value)">${esc(g.note||"")}</textarea>
-    </div>
-    <div class="goal-due-row">
-      <span class="due-lab">締め切り</span>
-      <input type="date" class="due-input" value="${g.due||''}" onchange="setGoalDue('${cid}','${g.id}',this.value)">
-      ${g.due?`<span class="due-badge">${g.due.slice(5).replace('-','/')}</span>`:''}
     </div>
     <div class="card-foot"><span class="del-g" onclick="delGoal('${cid}','${g.id}')">REMOVE</span></div>
   </div>`;
