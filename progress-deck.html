@@ -276,8 +276,10 @@
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1}}
   .cat-head{display:flex;align-items:center;gap:16px;margin-bottom:22px;padding:0 4px;flex-wrap:wrap}
   .cat-head .chip{width:3px;height:30px;border-radius:3px;background:var(--cat,var(--spec-amber));box-shadow:0 0 16px 1px var(--cat-glow,rgba(224,145,63,.5))}
-  .cat-head h3{font-size:22px;font-weight:200;flex:1;outline:none;min-width:120px;letter-spacing:.07em}
+  .cat-head h3{font-size:22px;font-weight:200;flex:0 1 auto;outline:none;min-width:80px;letter-spacing:.07em}
   .cat-head h3:focus{color:var(--ink)}
+  .cat-head .cat-due-wrap{flex:0 0 auto}
+  .cat-head .cat-prog{margin-left:auto}
   .cal-toggle{display:flex;gap:7px;align-items:center}
   .cal-toggle .cl{font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);margin-right:5px}
   .cal-btn{font-size:10px;padding:6px 13px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--ink-3);cursor:pointer;font-family:inherit;transition:.18s;letter-spacing:.1em;text-transform:uppercase}
@@ -336,6 +338,8 @@
   .check .star{cursor:pointer;font-size:11px;color:var(--ink-4);transition:.18s;line-height:1;flex:0 0 auto}
   .check .star:hover{color:var(--spec-amber)}
   .check .star.on{color:var(--spec-amber)}
+  .add-check{display:inline-block;margin-top:18px;font-size:10.5px;color:var(--ink-4);cursor:pointer;letter-spacing:.14em;text-transform:uppercase;transition:.18s;font-weight:400}
+  .add-check:hover{color:var(--spec-amber)}
 
   /* ============ TODAY panel ============ */
   .today{padding:32px;margin-bottom:56px}
@@ -461,13 +465,13 @@
 
   /* ---- goal due (タイトル下インライン) ---- */
   .goal-due-inline{display:flex;align-items:center;gap:8px;margin-top:5px;position:relative}
-  .due-input-inline{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0}
-  .due-badge-inline{font-size:11px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer}
+  .due-input-inline{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0;z-index:2}
+  .due-badge-inline{font-size:11px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;position:relative;z-index:1}
   .due-badge-inline.muted{color:var(--ink-4);font-size:10.5px}
   /* ---- cat due (プロジェクト締め切り) ---- */
   .cat-due-wrap{position:relative;display:flex;align-items:center}
-  .cat-due-input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0}
-  .cat-due-label{font-size:13px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;padding:4px 10px;border:1px solid rgba(224,145,63,.35);border-radius:8px;white-space:nowrap}
+  .cat-due-input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0;z-index:2}
+  .cat-due-label{font-size:13px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;padding:4px 10px;border:1px solid rgba(224,145,63,.35);border-radius:8px;white-space:nowrap;position:relative;z-index:1}
   .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
     border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
   .add-goal:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
@@ -624,7 +628,7 @@
     .cat-head{gap:10px 12px}
     .cat-head h3{font-size:19px;flex:1 1 100%;order:-1}
     .cat-order{order:-2}
-    .cat-prog{margin-left:0}
+    .cat-head .cat-prog{margin-left:0}
     .cat-prog .cp-bar{width:70px}
     .cat-tally{gap:10px;font-size:10px}
     .tally{font-size:10px}
@@ -917,6 +921,17 @@ function bumpAchieve(name){
     data.routine.achieveLog[k].push(name);
   }
 }
+// 取り消し：その日の達成数を-1、ログから該当名を1件だけ削除
+function unbumpAchieve(name){
+  const k=routineDayKey();
+  data.routine.achieve[k]=Math.max(0,(data.routine.achieve[k]||0)-1);
+  if(name && data.routine.achieveLog[k]){
+    const arr=data.routine.achieveLog[k];
+    const i=arr.lastIndexOf(name);
+    if(i>=0)arr.splice(i,1);
+    if(arr.length===0)delete data.routine.achieveLog[k];
+  }
+}
 // 直近7日（routineDay基準）より古い達成名ログを捨てる。数値achieveは残す。
 function pruneAchieveLog(d){
   const log=d.routine.achieveLog; if(!log)return;
@@ -1083,7 +1098,8 @@ function toggleAdhoc(id){
     bumpAchieve(a.t);
     if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=(c.count||0)+1;}
   }else{
-    // 取り消し：カウンターを-1（achieveの数値は減らさない仕様だがカウンターは実数なので戻す）
+    // 取り消し：達成-1・ログ削除・カウンター-1
+    unbumpAchieve(a.t);
     if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=Math.max(0,(c.count||0)-1);}
   }
   render();
@@ -1113,7 +1129,7 @@ function toggleStepActive(cid,gid,i){
 // toggle a step's done-state from the Today panel (mirrors the project step)
 function toggleStepFromToday(cid,gid,i){
   const[,g]=findG(cid,gid);
-  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}render();}
+  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}else{unbumpAchieve(g.checks[i].t);}render();}
 }
 // toggle the "today" star flag on a step
 function toggleToday(cid,gid,i){
@@ -1151,14 +1167,14 @@ function catHTML(c,index,total){
       </div>
       <div class="chip"></div>
       <h3 contenteditable spellcheck="false" oninput="renameCat('${c.id}',this.textContent)">${esc(c.name)}</h3>
-
-      <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
-      <div class="cat-tally">${tally}</div>
-      <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
       <div class="cat-due-wrap">
         <input type="date" class="cat-due-input" value="${c.due||''}" onchange="setCatDue('${c.id}',this.value)">
         <span class="cat-due-label">${c.due?'⏱ '+c.due.slice(5).replace('-','/'):'締め切りを設定'}</span>
       </div>
+
+      <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
+      <div class="cat-tally">${tally}</div>
+      <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
       <span class="del" onclick="delCat('${c.id}')">DELETE</span>
     </div>
     <div class="cards" data-cat="${c.id}">
@@ -1228,13 +1244,8 @@ function goalHTML(cid,g){
     <div class="checks">
       <div class="clab">今日の小さな一歩</div>
       ${checks}
-      <span class="add-check" onclick="addCheck('${cid}','${g.id}')">+ ステップを追加</span>
     </div>
-    <div class="notes">
-      <div class="nlab">課題 / 次に直すこと</div>
-      <textarea class="note" placeholder="詰まっている点、次に直すこと、気づき…。責めずに事実だけでOK。"
-        oninput="setNote('${cid}','${g.id}',this.value)">${esc(g.note||"")}</textarea>
-    </div>
+    <span class="add-check" onclick="addCheck('${cid}','${g.id}')">+ ステップを追加</span>
     <div class="card-foot"><span class="del-g" onclick="delGoal('${cid}','${g.id}')">REMOVE</span></div>
   </div>`;
 }
@@ -1250,7 +1261,7 @@ function renameGoal(cid,gid,t){const[,g]=findG(cid,gid);g.name=t;save()}
 function setNote(cid,gid,t){const[,g]=findG(cid,gid);g.note=t;save()}
 function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[]});render()}
 function delGoal(cid,gid){const c=data.cats.find(x=>x.id===cid);c.goals=c.goals.filter(x=>x.id!==gid);render()}
-function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}render()}
+function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}else{unbumpAchieve(g.checks[i].t);}render()}
 function editCheck(cid,gid,i,t){const[,g]=findG(cid,gid);g.checks[i].t=t;save()}
 function addCheck(cid,gid){const[,g]=findG(cid,gid);g.checks.push({t:"新しいステップ",on:false});render()}
 function delCheck(cid,gid,i){const[,g]=findG(cid,gid);g.checks.splice(i,1);render()}
