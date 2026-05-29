@@ -12,10 +12,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500&family=Noto+Sans+JP:wght@200;300;400;500&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
+<script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyD9h01ojm1udmPDa1P-5UzSfcs0_Q6cbg0",
     authDomain: "progress-deck.firebaseapp.com",
@@ -25,24 +24,24 @@
     messagingSenderId: "22418933605",
     appId: "1:22418933605:web:c1d4985c452572685e438c"
   };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const dataRef = ref(db, 'progressDeck');
+  firebase.initializeApp(firebaseConfig);
+  const _fbDb = firebase.database();
+  const _fbRef = _fbDb.ref('progressDeck');
 
   window.firebaseSave = function(data) {
-    set(dataRef, data).then(() => {
+    _fbRef.set(data).then(() => {
       const el = document.getElementById("lastsave");
       if(el) el.textContent = "SAVED · " + new Date().toLocaleTimeString("ja-JP");
     }).catch(e => console.error("Firebase save error:", e));
   };
 
-  onValue(dataRef, (snapshot) => {
+  window._fbReady = false;
+  _fbRef.once('value', (snapshot) => {
+    window._fbReady = true;
     const val = snapshot.val();
     if(val && val.cats && val.routine) {
       window._firebaseData = val;
     } else {
-      // Firebaseにデータなし → localStorageから移行を試みる
       const local = localStorage.getItem("progressDeck.v2");
       if(local) {
         try {
@@ -56,7 +55,7 @@
       if(!window._firebaseData) window._firebaseData = null;
     }
     if(window._onFirebaseReady) window._onFirebaseReady(window._firebaseData);
-  }, { onlyOnce: false });
+  });
 </script>
 <style>
   :root{
@@ -768,17 +767,23 @@ window._onFirebaseReady = function(fbData) {
   render();
 };
 function migrate(d){
+  if(!Array.isArray(d.cats)) d.cats = d.cats ? Object.values(d.cats) : [];
   d.cats.forEach(c=>{
-    const inherited=c.cal||"mid";
-    c.goals.forEach(g=>{if(!g.cal)g.cal=inherited});  // move difficulty onto each goal
-    delete c.cal;                                       // category no longer holds difficulty
+    if(!Array.isArray(c.goals)) c.goals = c.goals ? Object.values(c.goals) : [];
+    const inherited=c.cal||'mid';
+    c.goals.forEach(g=>{
+      if(!g.cal)g.cal=inherited;
+      if(!Array.isArray(g.checks)) g.checks = g.checks ? Object.values(g.checks) : [];
+    });
+    delete c.cal;
   });
   if(!d.routine.log)d.routine.log={};
   if(!d.routine.notes)d.routine.notes={};
   if(!d.routine.currentDay)d.routine.currentDay=routineDayKey();
-  if(!d.routine.adhoc)d.routine.adhoc=[];
+  if(!Array.isArray(d.routine.items)) d.routine.items = d.routine.items ? Object.values(d.routine.items) : [];
+  if(!Array.isArray(d.routine.adhoc)) d.routine.adhoc = d.routine.adhoc ? Object.values(d.routine.adhoc) : [];
   if(!d.routine.achieve)d.routine.achieve={};
-  if(!d.events)d.events=[];
+  if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
   return d;
 }
 function uid(){return Math.random().toString(36).slice(2,9)}
