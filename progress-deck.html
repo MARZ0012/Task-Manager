@@ -295,6 +295,41 @@
   .today-empty{padding:30px 8px;text-align:center;color:var(--ink-3);font-size:13px;font-weight:300;line-height:1.9;letter-spacing:.03em}
   .today-empty .star-ex{color:var(--spec-amber)}
 
+  /* today-head simple (リング無し) */
+  .today-head.simple{margin-bottom:20px}
+  .today-head.simple .title h2{font-size:23px}
+
+  /* 今日の予定（読み取り専用） */
+  .td-events{margin-bottom:18px;border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:14px 16px}
+  .td-sub{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400;margin-bottom:11px}
+  .td-ev{display:flex;align-items:baseline;gap:14px;padding:5px 0;font-weight:300}
+  .td-ev .te-time{font-family:"Roboto Mono",monospace;font-size:11.5px;color:var(--spec-amber);letter-spacing:.04em;flex:0 0 auto;min-width:46px}
+  .td-ev .te-title{font-size:13.5px;color:var(--ink-2);letter-spacing:.02em}
+
+  /* 単発タスク入力欄 */
+  .td-add{display:flex;gap:9px;margin-bottom:16px}
+  .td-add-in{flex:1;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:11px;color:var(--ink);
+    padding:12px 15px;font-size:13.5px;font-family:inherit;font-weight:300;letter-spacing:.02em}
+  .td-add-in:focus{outline:none;border-color:var(--line-2)}
+  .td-add-in::placeholder{color:var(--ink-4)}
+  .td-add-btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:11px;
+    padding:0 20px;font-size:11.5px;font-family:inherit;cursor:pointer;letter-spacing:.12em;transition:.2s var(--ease);font-weight:400}
+  .td-add-btn:hover{border-color:var(--ink-2);color:var(--ink);background:rgba(255,255,255,.03)}
+
+  /* 着手中フラグ（▸） */
+  .td-item .play,.check .play{cursor:pointer;font-size:13px;color:var(--ink-4);flex:0 0 auto;transition:.18s;line-height:1}
+  .td-item .play:hover,.check .play:hover{color:var(--spec-amber)}
+  .td-item .play.on,.check .play.on{color:var(--spec-amber)}
+  .td-item.active{border-color:rgba(224,145,63,.45);background:rgba(224,145,63,.05)}
+  .check.active{box-shadow:-2px 0 0 var(--spec-amber)}
+  .td-item .x{opacity:0;cursor:pointer;color:var(--ink-4);font-size:12px;transition:.18s;flex:0 0 auto}
+  .td-item:hover .x{opacity:1}
+  .td-item .x:hover{color:var(--cal-high)}
+  .td-item .td-text .t[contenteditable]:focus{outline:none;color:var(--ink)}
+
+  /* カレンダー: 過去日を沈める */
+  .cal-cell.past{opacity:.4}
+  .cal-cell.past:hover{opacity:.7}
 
   .notes{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
   .nlab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
@@ -522,16 +557,12 @@
 
   <!-- ============ TASKS VIEW ============ -->
   <div id="view-tasks">
-    <div class="metrics" id="metrics"></div>
-
-    <div class="echo">
-      <span class="orb"></span>
-      <span id="echo-text"></span>
-    </div>
-
     <!-- TODAY -->
     <div class="sec-title">Today — 今日すること</div>
     <div class="today glass" id="today"></div>
+
+    <!-- STATS -->
+    <div class="metrics" id="metrics"></div>
 
     <!-- CATEGORIES -->
     <div class="toolbar">
@@ -657,7 +688,9 @@ function load(){
       ],
       log:{},          // dayKey -> { itemId: true/false }
       notes:{},        // dayKey -> string
-      currentDay:routineDayKey()
+      currentDay:routineDayKey(),
+      adhoc:[],        // 単発タスク [{id,t,on}] 未完了は繰り越し・完了で非表示(データ保持)
+      achieve:{}       // dayKey -> 達成数(その日に+1された回数)。累計/今日/今週はここから算出
     },
     cats:[
       {id:uid(),name:"仕事",goals:[
@@ -681,6 +714,8 @@ function migrate(d){
   if(!d.routine.log)d.routine.log={};
   if(!d.routine.notes)d.routine.notes={};
   if(!d.routine.currentDay)d.routine.currentDay=routineDayKey();
+  if(!d.routine.adhoc)d.routine.adhoc=[];
+  if(!d.routine.achieve)d.routine.achieve={};
   if(!d.events)d.events=[];
   return d;
 }
@@ -705,64 +740,166 @@ function render(){
   renderMetrics();
   renderUpcoming();
   renderCalendar();
-  document.getElementById("echo-text").textContent=MSGS[new Date().getDate()%MSGS.length];
   save();updateClock();
 }
 
 function todayLog(){const k=data.routine.currentDay;if(!data.routine.log[k])data.routine.log[k]={};return data.routine.log[k]}
 
+// ====== 達成カウント（完了するたび+1・取り消しても減らさない） ======
+function bumpAchieve(){
+  const k=routineDayKey();
+  data.routine.achieve[k]=(data.routine.achieve[k]||0)+1;
+}
+// 週キー: その日が属する週（月曜始まり）の基準日。routineDayベース。
+function weekStartKey(dayKey){
+  const d=new Date(dayKey+"T00:00:00");
+  const dow=(d.getDay()+6)%7; // 月=0..日=6
+  d.setDate(d.getDate()-dow);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function achieveStats(){
+  const ach=data.routine.achieve||{};
+  const todayK=routineDayKey();
+  const wk=weekStartKey(todayK);
+  let total=0,today=0,week=0;
+  for(const k in ach){
+    const n=ach[k]||0;
+    total+=n;
+    if(k===todayK)today+=n;
+    if(weekStartKey(k)===wk)week+=n;
+  }
+  return {total,today,week};
+}
+
 function renderToday(){
   const el=document.getElementById("today"); if(!el)return;
-  // collect all steps flagged "today" across all projects, with their location
-  const items=[];
+
+  // --- 今日の予定（event種別のみ・読み取り専用） ---
+  const todayK=dateKey(new Date());
+  const todayEvents=data.events
+    .filter(e=>(e.kind||"event")==="event" && occursOn(e,todayK))
+    .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99"));
+
+  // --- プロジェクトの「今日やる」ステップ ---
+  const steps=[];
   data.cats.forEach(c=>c.goals.forEach(g=>{
     (g.checks||[]).forEach((ch,i)=>{
-      if(ch.today) items.push({cid:c.id, gid:g.id, idx:i, cat:c.name, goal:g.name, ch});
+      if(ch.today) steps.push({cid:c.id, gid:g.id, idx:i, cat:c.name, goal:g.name, ch});
     });
   }));
-  const total=items.length;
-  const done=items.filter(x=>x.ch.on).length;
-  const pct=total?Math.round(done/total*100):0;
-  const circ=2*Math.PI*52, off=circ*(1-pct/100);
 
-  let listHTML;
-  if(total===0){
-    listHTML=`<div class="today-empty">今日やることはまだありません。<br>各プロジェクトのステップで <span class="star-ex">○</span> を押すと、ここに集まります。</div>`;
-  }else{
-    listHTML=`<div class="today-list">`+items.map(x=>`
-      <div class="td-item ${x.ch.on?'on':''}">
-        <div class="box" onclick="toggleStepFromToday('${x.cid}','${x.gid}',${x.idx})"></div>
-        <div class="td-text">
-          <span class="t">${esc(x.ch.t)}</span>
-          <span class="src">${esc(x.cat)} · ${esc(x.goal)}</span>
-        </div>
-        <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
+  // --- 単発タスク（未完了のみ表示。完了はデータ保持だが非表示） ---
+  const adhoc=data.routine.adhoc||[];
+  const adhocOpen=adhoc.map((a,i)=>({a,i})).filter(x=>!x.a.on);
+
+  const total=steps.length+adhocOpen.length;
+  const doneSteps=steps.filter(x=>x.ch.on).length;
+
+  // 今日の予定ブロック
+  let evHTML="";
+  if(todayEvents.length){
+    evHTML=`<div class="td-events">
+      <div class="td-sub">今日の予定</div>`+
+      todayEvents.map(e=>`<div class="td-ev">
+        <span class="te-time">${e.time||"終日"}</span>
+        <span class="te-title">${esc(e.title)}</span>
       </div>`).join("")+`</div>`;
   }
 
-  el.innerHTML=`
-    <div class="today-head">
-      <div class="ring-big">
-        <svg width="120" height="120">
-          <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,.08)" stroke-width="8" fill="none"/>
-          <circle cx="60" cy="60" r="52" stroke="url(#spectrum)" stroke-width="8" fill="none" stroke-linecap="round"
-            stroke-dasharray="${circ}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .6s"/>
-        </svg>
-        <div class="center"><div class="num">${pct}%</div><div class="cap">TODAY</div></div>
+  // 単発タスク入力欄
+  const addHTML=`<div class="td-add">
+    <input id="adhocInput" class="td-add-in" placeholder="今日やることを追加してEnter…" maxlength="80"
+      onkeydown="if(event.key==='Enter')addAdhoc()">
+    <button class="td-add-btn" onclick="addAdhoc()">追加</button>
+  </div>`;
+
+  // リスト本体
+  let listItems="";
+  // 単発タスク（未完了）
+  adhocOpen.forEach(x=>{
+    const active=x.a.active?'active':'';
+    listItems+=`<div class="td-item ${active}">
+      <div class="box" onclick="toggleAdhoc('${x.a.id}')"></div>
+      <div class="td-text">
+        <span class="t" contenteditable spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
+        <span class="src">単発タスク${x.a.active?' · 着手中':''}</span>
       </div>
+      <span class="play ${x.a.active?'on':''}" title="着手中にする" onclick="toggleAdhocActive('${x.a.id}')">▸</span>
+      <span class="x" title="削除" onclick="delAdhoc('${x.a.id}')">✕</span>
+    </div>`;
+  });
+  // プロジェクトの今日ステップ
+  steps.forEach(x=>{
+    const active=x.ch.active?'active':'';
+    listItems+=`<div class="td-item ${x.ch.on?'on':''} ${active}">
+      <div class="box" onclick="toggleStepFromToday('${x.cid}','${x.gid}',${x.idx})"></div>
+      <div class="td-text">
+        <span class="t">${esc(x.ch.t)}</span>
+        <span class="src">${esc(x.cat)} · ${esc(x.goal)}${x.ch.active?' · 着手中':''}</span>
+      </div>
+      <span class="play ${x.ch.active?'on':''}" title="着手中にする" onclick="toggleStepActive('${x.cid}','${x.gid}',${x.idx})">▸</span>
+      <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
+    </div>`;
+  });
+
+  let listHTML;
+  if(total===0){
+    listHTML=`<div class="today-empty">今日やることはまだありません。<br>上の入力欄で単発タスクを足すか、各プロジェクトのステップで <span class="star-ex">○</span> を押すと、ここに集まります。</div>`;
+  }else{
+    listHTML=`<div class="today-list">${listItems}</div>`;
+  }
+
+  el.innerHTML=`
+    <div class="today-head simple">
       <div class="title">
         <div class="k">today's focus</div>
         <h2>今日すること</h2>
-        <div class="sub">${done} / ${total} 完了 · 各プロジェクトと連動</div>
+        <div class="sub">${total} 件 · ステップ ${doneSteps}/${steps.length} 完了</div>
       </div>
     </div>
+    ${evHTML}
+    ${addHTML}
     ${listHTML}`;
+}
+
+// ====== 単発タスク ======
+function addAdhoc(){
+  const inp=document.getElementById("adhocInput");
+  if(!inp)return;
+  const t=inp.value.trim();
+  if(!t)return;
+  data.routine.adhoc.push({id:uid(),t,on:false,active:false});
+  inp.value="";
+  render();
+  // 追加後に入力欄へフォーカスを戻す（連続入力しやすく）
+  const again=document.getElementById("adhocInput"); if(again)again.focus();
+}
+function toggleAdhoc(id){
+  const a=data.routine.adhoc.find(x=>x.id===id); if(!a)return;
+  const was=a.on; a.on=!was;
+  if(!was){a.active=false;bumpAchieve();}  // 完了したら着手中も解除し+1
+  render();
+}
+function editAdhoc(id,t){const a=data.routine.adhoc.find(x=>x.id===id);if(a){a.t=t;save();}}
+function delAdhoc(id){data.routine.adhoc=data.routine.adhoc.filter(x=>x.id!==id);render();}
+function toggleAdhocActive(id){
+  const a=data.routine.adhoc.find(x=>x.id===id); if(!a)return;
+  clearAllActive(); a.active=!a.active; render();
+}
+// 着手中は全体で1つだけ
+function clearAllActive(){
+  (data.routine.adhoc||[]).forEach(a=>a.active=false);
+  data.cats.forEach(c=>c.goals.forEach(g=>(g.checks||[]).forEach(ch=>ch.active=false)));
+}
+function toggleStepActive(cid,gid,i){
+  const[,g]=findG(cid,gid);
+  if(g&&g.checks[i]){const cur=g.checks[i].active;clearAllActive();g.checks[i].active=!cur;render();}
 }
 
 // toggle a step's done-state from the Today panel (mirrors the project step)
 function toggleStepFromToday(cid,gid,i){
   const[,g]=findG(cid,gid);
-  if(g&&g.checks[i]){g.checks[i].on=!g.checks[i].on;render();}
+  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve();}render();}
 }
 // toggle the "today" star flag on a step
 function toggleToday(cid,gid,i){
@@ -826,9 +963,10 @@ function goalHTML(cid,g){
   const prog=goalProg(g);
   const r=25,circ=2*Math.PI*r,off=circ*(1-prog/100);
   const checks=g.checks.map((ch,i)=>`
-    <div class="check ${ch.on?'on':''}">
+    <div class="check ${ch.on?'on':''} ${ch.active?'active':''}">
       <div class="box" onclick="toggleCheck('${cid}','${g.id}',${i})"></div>
       <span class="t" contenteditable spellcheck="false" oninput="editCheck('${cid}','${g.id}',${i},this.textContent)">${esc(ch.t)}</span>
+      <span class="play ${ch.active?'on':''}" title="着手中にする" onclick="toggleStepActive('${cid}','${g.id}',${i})">▸</span>
       <span class="star ${ch.today?'on':''}" title="今日やる" onclick="toggleToday('${cid}','${g.id}',${i})">${ch.today?'●':'○'}</span>
       <span class="x" onclick="delCheck('${cid}','${g.id}',${i})">✕</span>
     </div>`).join("");
@@ -888,7 +1026,7 @@ function renameGoal(cid,gid,t){const[,g]=findG(cid,gid);g.name=t;save()}
 function setNote(cid,gid,t){const[,g]=findG(cid,gid);g.note=t;save()}
 function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[]});render()}
 function delGoal(cid,gid){const c=data.cats.find(x=>x.id===cid);c.goals=c.goals.filter(x=>x.id!==gid);render()}
-function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);g.checks[i].on=!g.checks[i].on;render()}
+function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve();}render()}
 function editCheck(cid,gid,i,t){const[,g]=findG(cid,gid);g.checks[i].t=t;save()}
 function addCheck(cid,gid){const[,g]=findG(cid,gid);g.checks.push({t:"新しいステップ",on:false});render()}
 function delCheck(cid,gid,i){const[,g]=findG(cid,gid);g.checks.splice(i,1);render()}
@@ -904,24 +1042,19 @@ function moveCat(cid,dir){
 }
 
 function renderMetrics(){
-  let a=[];data.cats.forEach(c=>c.goals.forEach(g=>a.push(g)));
-  const t=a.length,avg=t?Math.round(a.reduce((s,g)=>s+goalProg(g),0)/t):0,done=a.filter(g=>goalProg(g)>=100).length;
-  const cnt={low:0,mid:0,high:0};a.forEach(g=>{cnt[g.cal||"mid"]++});
-  // today's flagged steps across all projects
-  let tdAll=0,tdDone=0;
-  data.cats.forEach(c=>c.goals.forEach(g=>(g.checks||[]).forEach(ch=>{if(ch.today){tdAll++;if(ch.on)tdDone++;}})));
-  const diffMetric=`<div class="metric glass"><div class="lab">BY DIFFICULTY · 難易度別</div>
-    <div class="diff-split">
-      <span class="ds"><i style="background:var(--cal-high)"></i><b>${cnt.high}</b>高</span>
-      <span class="ds"><i style="background:var(--cal-mid)"></i><b>${cnt.mid}</b>中</span>
-      <span class="ds"><i style="background:var(--cal-low)"></i><b>${cnt.low}</b>低</span>
-    </div></div>`;
+  // プロジェクト数
+  const projects=data.cats.length;
+  // ステップ総数 / 達成済（今オンになっているステップ数）
+  let stepTotal=0,stepDone=0;
+  data.cats.forEach(c=>c.goals.forEach(g=>(g.checks||[]).forEach(ch=>{stepTotal++;if(ch.on)stepDone++;})));
+  // 達成カウント（今日 / 今週 / 累計）
+  const ach=achieveStats();
   document.getElementById("metrics").innerHTML=
-    metric("ACTIVE GOALS",t,"")+
-    metric("AVG PROGRESS",avg,"%","accent")+
-    metric("COMPLETED",done,"/"+t)+
-    diffMetric+
-    metric("TODAY",tdDone,"/"+tdAll,"accent");
+    metric("TODAY · 今日の達成",ach.today,"","accent")+
+    metric("THIS WEEK · 今週",ach.week,"")+
+    metric("TOTAL · 累計達成",ach.total,"")+
+    metric("STEPS · 達成/総数",stepDone,"/"+stepTotal)+
+    metric("PROJECTS · 抱えている数",projects,"");
 }
 function metric(lab,val,suf,cls=""){return `<div class="metric glass ${cls}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div></div>`}
 
@@ -1040,6 +1173,7 @@ function renderCalendar(){
     const events=all.filter(e=>e.kind!=="memo");
     const memos=all.filter(e=>e.kind==="memo");
     const isToday=key===todayKey;
+    const isPast=key<todayKey;
     // events: show title (as before)
     let evHTML=events.map(e=>{
       const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
@@ -1050,7 +1184,7 @@ function renderCalendar(){
       `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openEvent('${e.id}')">◍</span>`
     ).join("");
     const dateRow=`<div class="cal-date-row"><span class="cal-date">${day}</span>${memoMarks?`<span class="memo-marks">${memoMarks}</span>`:""}</div>`;
-    cells+=`<div class="cal-cell ${isToday?'today':''}" onclick="openEvent(null,'${key}')">
+    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''}" onclick="openEvent(null,'${key}')">
       ${dateRow}${evHTML}</div>`;
   }
   // pad the last row so every row has 7 cells (keeps column widths stable)
