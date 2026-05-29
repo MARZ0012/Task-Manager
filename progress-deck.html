@@ -263,7 +263,7 @@
   .check .x{opacity:0;color:var(--ink-4);cursor:pointer;font-size:12px;transition:.18s}
   .check:hover .x{opacity:1}
   .check .x:hover{color:var(--cal-high)}
-  .check .star{cursor:pointer;font-size:13px;color:var(--ink-4);transition:.18s;line-height:1;flex:0 0 auto}
+  .check .star{cursor:pointer;font-size:11px;color:var(--ink-4);transition:.18s;line-height:1;flex:0 0 auto}
   .check .star:hover{color:var(--spec-amber)}
   .check .star.on{color:var(--spec-amber)}
 
@@ -369,9 +369,13 @@
   .cal-cell:hover{border-color:var(--line-2);background:rgba(255,255,255,.025)}
   .cal-cell.blank{background:transparent;border-color:transparent;cursor:default}
   .cal-cell.blank:hover{background:transparent}
-  .cal-cell.today{border-color:var(--spec-amber)}
+  .cal-cell.today{border-color:var(--spec-amber);box-shadow:inset 0 0 0 1px var(--spec-amber)}
   .cal-date{font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-2);font-weight:300}
   .cal-cell.today .cal-date{color:var(--spec-amber)}
+  .cal-date-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+  .memo-marks{display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+  .memo-dot{font-size:12px;color:var(--cal-low);cursor:pointer;line-height:1;transition:.15s}
+  .memo-dot:hover{color:var(--spec-amber);filter:brightness(1.3)}
   .cal-ev{font-size:10.5px;line-height:1.35;color:var(--ink);background:linear-gradient(96deg,rgba(224,145,63,.22),rgba(184,68,62,.18));border-left:2px solid var(--spec-amber);border-radius:4px;padding:3px 6px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:.15s}
   .cal-ev:hover{filter:brightness(1.2)}
   .cal-ev .t{font-family:"Roboto Mono",monospace;font-size:9px;color:var(--spec-amber);margin-right:4px}
@@ -390,6 +394,7 @@
   .modal label{display:block;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px;font-weight:400}
   .modal select{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:12px;font-size:13px;font-family:inherit;font-weight:300;color-scheme:dark}
   .modal select:focus{outline:none;border-color:var(--line-2)}
+  .modal select option{background:#15110d;color:var(--ink)}
 
   /* ---- category reorder + project progress ---- */
   .cat-order{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
@@ -645,7 +650,7 @@ function renderToday(){
 
   let listHTML;
   if(total===0){
-    listHTML=`<div class="today-empty">今日やることはまだありません。<br>各プロジェクトのステップで <span class="star-ex">☆</span> を押すと、ここに集まります。</div>`;
+    listHTML=`<div class="today-empty">今日やることはまだありません。<br>各プロジェクトのステップで <span class="star-ex">○</span> を押すと、ここに集まります。</div>`;
   }else{
     listHTML=`<div class="today-list">`+items.map(x=>`
       <div class="td-item ${x.ch.on?'on':''}">
@@ -654,7 +659,7 @@ function renderToday(){
           <span class="t">${esc(x.ch.t)}</span>
           <span class="src">${esc(x.cat)} · ${esc(x.goal)}</span>
         </div>
-        <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">★</span>
+        <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
       </div>`).join("")+`</div>`;
   }
 
@@ -747,7 +752,7 @@ function goalHTML(cid,g){
     <div class="check ${ch.on?'on':''}">
       <div class="box" onclick="toggleCheck('${cid}','${g.id}',${i})"></div>
       <span class="t" contenteditable spellcheck="false" oninput="editCheck('${cid}','${g.id}',${i},this.textContent)">${esc(ch.t)}</span>
-      <span class="star ${ch.today?'on':''}" title="今日やる" onclick="toggleToday('${cid}','${g.id}',${i})">${ch.today?'★':'☆'}</span>
+      <span class="star ${ch.today?'on':''}" title="今日やる" onclick="toggleToday('${cid}','${g.id}',${i})">${ch.today?'●':'○'}</span>
       <span class="x" onclick="delCheck('${cid}','${g.id}',${i})">✕</span>
     </div>`).join("");
   const calBtns=["low","mid","high"].map(k=>{
@@ -952,16 +957,23 @@ function renderCalendar(){
   for(let i=0;i<startDow;i++)cells+=`<div class="cal-cell blank"></div>`;
   for(let day=1;day<=daysInMonth;day++){
     const d=new Date(y,m,day), key=dateKey(d);
-    const evs=eventsOn(key);
+    const all=eventsOn(key);
+    const events=all.filter(e=>e.kind!=="memo");
+    const memos=all.filter(e=>e.kind==="memo");
     const isToday=key===todayKey;
-    let evHTML=evs.slice(0,3).map(e=>{
-      const isMemo=e.kind==="memo";
+    // events: show title (as before)
+    let evHTML=events.slice(0,3).map(e=>{
       const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
-      return `<div class="cal-ev ${isMemo?'memo':''}" onclick="event.stopPropagation();openEvent('${e.id}')">${!isMemo&&e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
+      return `<div class="cal-ev" onclick="event.stopPropagation();openEvent('${e.id}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
     }).join("");
-    if(evs.length>3)evHTML+=`<div class="cal-more">+${evs.length-3} more</div>`;
+    if(events.length>3)evHTML+=`<div class="cal-more">+${events.length-3} more</div>`;
+    // memos: marks only, no text (private). click to open detail.
+    const memoMarks=memos.map(e=>
+      `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openEvent('${e.id}')">◍</span>`
+    ).join("");
+    const dateRow=`<div class="cal-date-row"><span class="cal-date">${day}</span>${memoMarks?`<span class="memo-marks">${memoMarks}</span>`:""}</div>`;
     cells+=`<div class="cal-cell ${isToday?'today':''}" onclick="openEvent(null,'${key}')">
-      <div class="cal-date">${day}</div>${evHTML}</div>`;
+      ${dateRow}${evHTML}</div>`;
   }
   el.innerHTML=`<div class="cal-grid">${cells}</div>`;
 }
