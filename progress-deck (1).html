@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROGRESS · DECK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500&family=Noto+Sans+JP:wght@200;300;400;500&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ---- spectrum (poster): dusty orange → red → green → blue, all desaturated & dark ---- */
+    --spec-orange:#d9763c;
+    --spec-amber:#e0913f;
+    --spec-red:#b8443e;
+    --spec-green:#3f7a5f;
+    --spec-teal:#2f6f72;
+    --spec-blue:#2e5a8f;
+    --spec-indigo:#2a3d6b;
+
+    /* ink — never pure white. paper-grey hierarchy */
+    --ink:#e7e3da;
+    --ink-2:#a8a39a;
+    --ink-3:#6f6b63;
+    --ink-4:#48453f;
+
+    /* surfaces — near-black, barely-there */
+    --bg:#070707;
+    --panel:rgba(255,255,255,.022);
+    --panel-2:rgba(255,255,255,.04);
+    --line:rgba(255,255,255,.07);
+    --line-2:rgba(255,255,255,.12);
+
+    /* difficulty accents — muted, not candy */
+    --cal-low:#5f8f6b;
+    --cal-mid:#c79a52;
+    --cal-high:#bf5b54;
+
+    --r:18px;
+    --ease:cubic-bezier(.22,.7,.24,1);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:"Outfit","Noto Sans JP",system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    padding:46px 40px 120px;
+    overflow-x:hidden;
+    position:relative;
+    font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    letter-spacing:.01em;
+  }
+
+  /* ============ THE BACKGROUND — light bleeding from one corner, spectrum smear ============ */
+  .space{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--bg);}
+  /* the bright source + the spectrum it casts, anchored top-left like the poster */
+  .space::before{
+    content:"";position:absolute;inset:-15%;
+    background:
+      radial-gradient(26% 24% at 20% 16%, rgba(244,214,150,.85), rgba(224,145,63,.42) 30%, rgba(184,68,62,.24) 52%, transparent 70%),
+      radial-gradient(46% 40% at 30% 26%, rgba(217,118,60,.3), transparent 64%),
+      radial-gradient(60% 54% at 56% 52%, rgba(63,122,95,.26), transparent 66%),
+      radial-gradient(72% 66% at 74% 70%, rgba(46,90,143,.3), transparent 70%),
+      radial-gradient(58% 56% at 88% 86%, rgba(42,61,107,.26), transparent 66%);
+    filter:blur(10px) saturate(105%);
+    animation:bloom 32s var(--ease) infinite alternate;
+  }
+  /* the hot pinpoint core, like the poster's sun */
+  .space .core{position:absolute;left:19.5%;top:16%;width:3px;height:3px;border-radius:50%;
+    background:#fff6e3;box-shadow:0 0 22px 8px rgba(255,236,196,.8),0 0 70px 28px rgba(231,150,70,.28);}
+  /* deep vignette so edges fall to black + keep the top-left text band readable */
+  .space::after{content:"";position:absolute;inset:0;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.55) 0%, transparent 24%),
+      radial-gradient(140% 130% at 28% 22%, transparent 30%, rgba(0,0,0,.62) 76%, rgba(0,0,0,.9) 100%);}
+  @keyframes bloom{from{transform:translate(0,0) scale(1)}to{transform:translate(2.5%,-2%) scale(1.08)}}
+
+  /* faint engineering grid, like the poster's blueprint lines */
+  .grid-lines{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+    background-image:
+      linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(120% 100% at 30% 26%, #000 30%, transparent 80%);}
+
+  .stars{position:absolute;inset:0;opacity:.7;
+    background-image:
+      radial-gradient(1px 1px at 18% 32%, rgba(255,255,255,.7), transparent),
+      radial-gradient(1px 1px at 72% 18%, rgba(255,240,220,.6), transparent),
+      radial-gradient(1px 1px at 44% 72%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 88% 58%, rgba(220,235,255,.55), transparent),
+      radial-gradient(1px 1px at 58% 88%, rgba(255,255,255,.45), transparent),
+      radial-gradient(1px 1px at 9% 80%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 93% 38%, rgba(255,255,255,.4), transparent);
+    background-repeat:no-repeat;animation:tw 6s ease-in-out infinite alternate;}
+  @keyframes tw{from{opacity:.4}to{opacity:.8}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+
+  .wrap{max-width:1240px;margin:0 auto;position:relative;z-index:2}
+
+  /* ============ glass — barely there, no candy glow ============ */
+  .glass{position:relative;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--r);
+    backdrop-filter:blur(20px) saturate(115%);-webkit-backdrop-filter:blur(20px) saturate(115%);}
+  .glass > *{position:relative;z-index:1}
+
+  /* ============ header ============ */
+  header.bar{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:54px}
+  .brand .kicker{font-size:10px;letter-spacing:.55em;text-transform:uppercase;color:var(--ink-2);font-weight:400;display:flex;align-items:center;gap:11px}
+  .brand h1{font-weight:200;font-size:clamp(30px,4.4vw,52px);letter-spacing:.16em;line-height:1.05;margin-top:16px;text-transform:uppercase;color:var(--ink)}
+  .brand .tag{font-size:13px;color:var(--ink-2);letter-spacing:.06em;margin-top:12px;font-weight:300}
+  .ping{width:6px;height:6px;border-radius:50%;background:var(--spec-amber);box-shadow:0 0 12px 2px rgba(224,145,63,.6);animation:pulse 2.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .clock{text-align:right;font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.14em;line-height:2.1;font-weight:300}
+  .clock b{color:var(--ink-2);font-weight:400}
+
+  /* ============ metrics ============ */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:18px;margin-bottom:30px}
+  .metric{padding:24px 24px 22px;position:relative;overflow:hidden}
+  .metric .lab{font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
+  .metric .val{font-size:46px;font-weight:100;margin-top:14px;letter-spacing:.01em;line-height:1;color:var(--ink)}
+  .metric .val small{font-size:15px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
+  .metric.accent .val{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .metric .spark{display:none}
+
+  .echo{padding:20px 26px;margin-bottom:44px;display:flex;gap:16px;align-items:center;font-size:14px;font-weight:300;letter-spacing:.04em;color:var(--ink-2);
+    border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(14px)}
+  .echo .orb{width:7px;height:7px;border-radius:50%;flex:0 0 auto;align-self:center;
+    background:var(--spec-amber);box-shadow:0 0 14px 3px rgba(224,145,63,.5);animation:pulse 3.4s infinite}
+
+  /* ============ section title ============ */
+  .sec-title{font-size:10.5px;letter-spacing:.42em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin:8px 2px 22px;display:flex;align-items:center;gap:16px}
+  .sec-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line-2),transparent)}
+
+  /* ============ buttons ============ */
+  .btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:10px;
+    padding:10px 17px;font-size:11.5px;font-family:inherit;cursor:pointer;letter-spacing:.12em;text-transform:uppercase;transition:.22s var(--ease);display:inline-flex;align-items:center;gap:8px;font-weight:400}
+  .btn:hover{border-color:var(--ink-2);color:var(--ink);background:rgba(255,255,255,.03)}
+  .btn.solid{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#1a0d06;border:none;font-weight:500}
+  .btn.solid:hover{filter:brightness(1.08)}
+  .controls{display:flex;gap:11px;flex-wrap:wrap}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px;flex-wrap:wrap}
+
+  /* ============ ROUTINE PANEL ============ */
+  .routine{padding:36px;margin-bottom:56px;position:relative;overflow:hidden}
+  .routine .halo{display:none}
+  .routine-head{display:flex;align-items:center;gap:32px;flex-wrap:wrap;margin-bottom:34px}
+  .routine-head .title{flex:1;min-width:200px}
+  .routine-head .title .k{font-size:9.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
+  .routine-head .title h2{font-size:25px;font-weight:200;margin-top:10px;letter-spacing:.05em}
+  .routine-head .title .sub{font-size:12px;color:var(--ink-3);margin-top:10px;letter-spacing:.06em;font-family:"Roboto Mono",monospace;font-weight:300}
+
+  .ring-big{position:relative;width:130px;height:130px;flex:0 0 auto}
+  .ring-big svg{transform:rotate(-90deg)}
+  .ring-big .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-big .center .num{font-size:34px;font-weight:100;color:var(--ink)}
+  .ring-big .center .cap{font-size:8.5px;letter-spacing:.34em;color:var(--ink-3);text-transform:uppercase;margin-top:5px}
+
+  .perfect{display:flex;gap:14px;flex-wrap:wrap;margin-left:auto}
+  .stat{text-align:center;padding:18px 22px;border:1px solid var(--line);border-radius:14px;background:var(--panel);min-width:104px}
+  .stat .n{font-size:30px;font-weight:100;color:var(--ink)}
+  .stat .l{font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;line-height:1.7}
+
+  .rt-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:11px;margin-bottom:24px}
+  .rt-check{display:flex;align-items:center;gap:13px;padding:15px 17px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease)}
+  .rt-check.on{background:rgba(224,145,63,.07);border-color:rgba(224,145,63,.28)}
+  .rt-check .box{width:19px;height:19px;border-radius:6px;border:1.4px solid var(--line-2);flex:0 0 auto;cursor:pointer;position:relative;transition:.18s}
+  .rt-check .box:hover{border-color:var(--spec-amber)}
+  .rt-check.on .box{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent}
+  .rt-check.on .box::after{content:"";position:absolute;left:6px;top:2px;width:4px;height:10px;border:solid #150a04;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .rt-check .t{flex:1;font-size:13.5px;outline:none;font-weight:300;letter-spacing:.02em}
+  .rt-check .t:focus{color:var(--ink)}
+  .rt-check.on .t{color:var(--ink-2)}
+  .rt-check .rate{font-size:9.5px;color:var(--ink-4);letter-spacing:.08em;font-family:"Roboto Mono",monospace;font-variant-numeric:tabular-nums}
+  .rt-check .x{opacity:0;cursor:pointer;color:var(--ink-4);font-size:12px;transition:.18s}
+  .rt-check:hover .x{opacity:1}
+  .rt-check .x:hover{color:var(--cal-high)}
+  .add-rt{font-size:11px;color:var(--ink-3);cursor:pointer;letter-spacing:.16em;text-transform:uppercase;display:inline-block;margin-bottom:30px;transition:.2s}
+  .add-rt:hover{color:var(--spec-amber)}
+
+  .rt-note{margin-bottom:30px}
+  .rt-note .lab{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+  textarea.note{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;color:var(--ink);
+    padding:15px 16px;font-size:13.5px;line-height:1.75;font-family:inherit;font-weight:300;resize:vertical;min-height:62px;letter-spacing:.02em}
+  textarea.note:focus{outline:none;border-color:var(--line-2)}
+  textarea.note::placeholder{color:var(--ink-4)}
+
+  /* ============ analytics ============ */
+  .analytics .lab{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:15px}
+  .heat{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  .day{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);position:relative;cursor:default;
+    display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--ink-4);font-family:"Roboto Mono",monospace}
+  .day[data-lvl="full"]{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent;color:#150a04}
+  .day[data-lvl="part"]{background:rgba(224,145,63,.22);border-color:rgba(224,145,63,.32)}
+  .day[data-lvl="none"]{background:rgba(191,91,84,.12);border-color:rgba(191,91,84,.3)}
+  .day[data-lvl="empty"]{background:rgba(255,255,255,.02)}
+  .heat-legend{font-size:9.5px;color:var(--ink-4);letter-spacing:.1em;display:flex;gap:18px;align-items:center;flex-wrap:wrap;text-transform:uppercase}
+  .lg{display:inline-flex;align-items:center;gap:6px}
+  .lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .breakdown{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
+  .bd-row{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:11px;font-weight:300}
+  .bd-bar{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden}
+  .bd-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--spec-amber),var(--spec-red));border-radius:4px}
+  .bd-row .pc{font-size:10px;color:var(--ink-4);width:38px;text-align:right;font-family:"Roboto Mono",monospace;font-variant-numeric:tabular-nums}
+
+  /* ============ CATEGORIES ============ */
+  .cat{margin-bottom:46px;animation:rise .6s var(--ease) backwards}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1}}
+  .cat-head{display:flex;align-items:center;gap:16px;margin-bottom:22px;padding:0 4px;flex-wrap:wrap}
+  .cat-head .chip{width:3px;height:30px;border-radius:3px;background:var(--cat,var(--spec-amber));box-shadow:0 0 16px 1px var(--cat-glow,rgba(224,145,63,.5))}
+  .cat-head h3{font-size:22px;font-weight:200;flex:1;outline:none;min-width:120px;letter-spacing:.07em}
+  .cat-head h3:focus{color:var(--ink)}
+  .cal-toggle{display:flex;gap:7px;align-items:center}
+  .cal-toggle .cl{font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);margin-right:5px}
+  .cal-btn{font-size:10px;padding:6px 13px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--ink-3);cursor:pointer;font-family:inherit;transition:.18s;letter-spacing:.1em;text-transform:uppercase}
+  .cal-btn:hover{color:var(--ink-2)}
+  .cal-btn.active[data-cal="low"]{background:var(--cal-low);border-color:transparent;color:#0c1a11;font-weight:500}
+  .cal-btn.active[data-cal="mid"]{background:var(--cal-mid);border-color:transparent;color:#1f1503;font-weight:500}
+  .cal-btn.active[data-cal="high"]{background:var(--cal-high);border-color:transparent;color:#1f0a08;font-weight:500}
+  .cat-head .count{font-size:9.5px;color:var(--ink-4);letter-spacing:.16em;font-family:"Roboto Mono",monospace}
+  .cat-head .del{font-size:9.5px;color:var(--ink-4);cursor:pointer;letter-spacing:.14em;text-transform:uppercase}
+  .cat-head .del:hover{color:var(--cal-high)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
+
+  .card{padding:24px;position:relative;overflow:hidden;transition:transform .3s var(--ease),border-color .3s;
+    border:1px solid var(--line)}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cat,var(--spec-amber));opacity:.8}
+  .card:hover{transform:translateY(-4px);border-color:var(--line-2)}
+  .card.dragging{opacity:.35;transform:scale(.97)}
+  .card.over{box-shadow:0 0 0 1px var(--ink-3) inset}
+  .card.done::after{content:"COMPLETE";position:absolute;top:18px;right:-34px;transform:rotate(45deg);z-index:2;
+    background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#150a04;font-size:8px;font-weight:600;letter-spacing:.22em;padding:4px 38px}
+  .card-top{display:flex;gap:16px;align-items:flex-start}
+  .grip{flex:0 0 auto;cursor:grab;color:var(--ink-4);padding-top:6px;user-select:none;font-size:13px;letter-spacing:1px;line-height:1}
+  .grip:active{cursor:grabbing}
+  .ring{flex:0 0 auto;position:relative;width:62px;height:62px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:200;color:var(--ink);font-family:"Roboto Mono",monospace}
+  .card-title{flex:1;min-width:0}
+  .card-title .name{font-size:16px;font-weight:300;line-height:1.4;word-break:break-word;outline:none;letter-spacing:.02em}
+  .card-title .name:focus{color:var(--ink)}
+  .card-title .meta{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-4);margin-top:9px;font-family:"Roboto Mono",monospace}
+
+  .slider-row{margin:20px 0 6px}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;width:100%;cursor:pointer;
+    background:linear-gradient(90deg,var(--cat,var(--spec-amber)) var(--p,0%),rgba(255,255,255,.1) var(--p,0%))}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ink);border:none;box-shadow:0 0 0 4px rgba(0,0,0,.4);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--ink);border:none;cursor:pointer}
+
+  .checks{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+  .clab{font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400;margin-bottom:11px}
+  .check{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px;color:var(--ink-2);font-weight:300}
+  .check .box{width:16px;height:16px;border-radius:5px;border:1.4px solid var(--line-2);flex:0 0 auto;cursor:pointer;position:relative;transition:.18s}
+  .check .box:hover{border-color:var(--spec-amber)}
+  .check.on .box{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent}
+  .check.on .box::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;border:solid #150a04;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .check.on .t{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--ink-4)}
+  .check .t{flex:1;outline:none;letter-spacing:.02em}
+  .check .t:focus{color:var(--ink)}
+  .check .x{opacity:0;color:var(--ink-4);cursor:pointer;font-size:12px;transition:.18s}
+  .check:hover .x{opacity:1}
+  .check .x:hover{color:var(--cal-high)}
+  .add-check{font-size:10.5px;color:var(--ink-3);cursor:pointer;margin-top:10px;display:inline-block;letter-spacing:.12em;text-transform:uppercase;transition:.2s}
+  .add-check:hover{color:var(--spec-amber)}
+
+  .notes{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+  .nlab{font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
+  .card-foot{display:flex;justify-content:flex-end;margin-top:16px}
+  .del-g{font-size:9px;color:var(--ink-4);cursor:pointer;letter-spacing:.16em;text-transform:uppercase}
+  .del-g:hover{color:var(--cal-high)}
+
+  .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
+    border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
+  .add-goal:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
+
+  footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);font-size:9.5px;color:var(--ink-4);
+    letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:"Roboto Mono",monospace}
+
+  .modal-bg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;
+    background:rgba(0,0,0,.7);backdrop-filter:blur(8px)}
+  .modal-bg.show{display:flex}
+  .modal{padding:32px;width:100%;max-width:400px}
+  .modal h4{font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:20px;font-weight:400;color:var(--ink-2)}
+  .modal input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:14px;font-size:14px;margin-bottom:20px;font-family:inherit;font-weight:300}
+  .modal input:focus{outline:none;border-color:var(--line-2)}
+  .modal .row{display:flex;gap:10px;justify-content:flex-end}
+
+  /* ---- per-task difficulty toggle (inside card) ---- */
+  .cal-row{display:flex;align-items:center;gap:11px;margin-top:16px}
+  .cal-lab{font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400}
+  .cal-toggle{display:flex;gap:6px;align-items:center}
+  .cal-toggle .cl{display:none}
+
+  /* ---- category difficulty tally (in cat header) ---- */
+  .cat-tally{display:flex;gap:14px;align-items:center;margin-left:auto;flex-wrap:wrap}
+  .tally{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2);letter-spacing:.08em;font-weight:300}
+  .tally i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .cat-head .count{margin-left:18px}
+
+  /* ---- metrics: by-difficulty split ---- */
+  .diff-split{display:flex;gap:16px;margin-top:16px;align-items:baseline}
+  .diff-split .ds{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);font-weight:300;letter-spacing:.04em}
+  .diff-split .ds i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .diff-split .ds b{font-size:22px;font-weight:100;color:var(--ink);letter-spacing:0}
+</style>
+</head>
+<body>
+<div class="space"><div class="stars"></div><div class="core"></div></div>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="spectrum" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#e0913f"/>
+    <stop offset="38%" stop-color="#b8443e"/>
+    <stop offset="70%" stop-color="#3f7a5f"/>
+    <stop offset="100%" stop-color="#2e5a8f"/>
+  </linearGradient>
+</defs></svg>
+<div class="grid-lines"></div>
+<div class="grain"></div>
+
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <div class="kicker"><span class="ping"></span>personal progress console</div>
+      <h1>Progress</h1>
+      <div class="tag">小さな進歩の積み重ねが、大きな成果を生む。</div>
+    </div>
+    <div class="clock" id="clock">SYNCING…</div>
+  </header>
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="echo">
+    <span class="orb"></span>
+    <span id="echo-text"></span>
+  </div>
+
+  <!-- ROUTINE -->
+  <div class="sec-title">Daily Routine — 毎日ルーティーン</div>
+  <div class="routine glass" id="routine"></div>
+
+  <!-- CATEGORIES -->
+  <div class="toolbar">
+    <div class="sec-title" style="margin:0">Goals — 仕事 / 私生活</div>
+    <div class="controls">
+      <button class="btn" onclick="openCat()">+ カテゴリ追加</button>
+      <button class="btn" onclick="exportData()">⬇ バックアップ</button>
+      <button class="btn" onclick="document.getElementById('imp').click()">⬆ 復元</button>
+      <input type="file" id="imp" accept="application/json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+  <div id="board"></div>
+
+  <footer>
+    <span>STORED LOCALLY · データはあなたのブラウザにのみ保存されます</span>
+    <span id="lastsave">—</span>
+  </footer>
+</div>
+
+<div class="modal-bg" id="catModal">
+  <div class="modal glass">
+    <h4>NEW CATEGORY</h4>
+    <input id="catName" placeholder="例：仕事 / 創作 / 健康 / 学び" maxlength="40">
+    <div class="row">
+      <button class="btn" onclick="closeCat()">CANCEL</button>
+      <button class="btn solid" onclick="addCat()">CREATE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE="progressDeck.v2";
+const MSGS=[
+ "今日も起動できた。それだけで前進だ。",
+ "完璧じゃなくていい。1%でも動けば記録は伸びる。",
+ "止まった日があっても、積み上げは消えない。",
+ "小さなチェックひとつが、明日の自分を助ける。",
+ "比べる相手は昨日の自分だけ。今日はもう更新している。",
+ "うまくいかない点はメモに残せば十分。責めなくていい。",
+ "休むのも進行の一部。回復はサボりじゃない。",
+ "あなたのペースが正しいペース。"
+];
+const CAL_COLOR={low:["#5f8f6b","rgba(95,143,107,.45)"],mid:["#c79a52","rgba(199,154,82,.45)"],high:["#bf5b54","rgba(191,91,84,.45)"]};
+
+// ---- "routine day" key: resets at 02:00. Anything before 2am counts as previous calendar day.
+function routineDayKey(d=new Date()){
+  const x=new Date(d.getTime());
+  x.setHours(x.getHours()-2); // shift so 2am boundary = midnight
+  return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+let data=load();
+
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(STORE));if(d&&d.cats&&d.routine)return migrate(d);}catch(e){}
+  return {
+    routine:{
+      items:[
+        {id:uid(),t:"日光を浴びる"},
+        {id:uid(),t:"水をしっかり飲む"},
+        {id:uid(),t:"23時には画面を閉じる"}
+      ],
+      log:{},          // dayKey -> { itemId: true/false }
+      notes:{},        // dayKey -> string
+      currentDay:routineDayKey()
+    },
+    cats:[
+      {id:uid(),name:"仕事",goals:[
+        {id:uid(),name:"進行中のプロジェクトを一区切りまで進める",cal:"high",prog:35,note:"詰まり点：仕様の優先順位が曖昧。明日、要件を3つに絞る。",checks:[{t:"30分だけ手をつける",on:false}]},
+        {id:uid(),name:"メールの返信をためない",cal:"low",prog:60,note:"",checks:[]}
+      ]},
+      {id:uid(),name:"私生活",goals:[
+        {id:uid(),name:"生活リズムを整える",cal:"mid",prog:50,note:"",checks:[{t:"散歩する",on:false}]},
+        {id:uid(),name:"部屋を片付ける",cal:"low",prog:20,note:"",checks:[]}
+      ]}
+    ]
+  };
+}
+function migrate(d){
+  d.cats.forEach(c=>{
+    const inherited=c.cal||"mid";
+    c.goals.forEach(g=>{if(!g.cal)g.cal=inherited});  // move difficulty onto each goal
+    delete c.cal;                                       // category no longer holds difficulty
+  });
+  if(!d.routine.log)d.routine.log={};
+  if(!d.routine.notes)d.routine.notes={};
+  if(!d.routine.currentDay)d.routine.currentDay=routineDayKey();
+  return d;
+}
+function uid(){return Math.random().toString(36).slice(2,9)}
+function save(){localStorage.setItem(STORE,JSON.stringify(data));
+  document.getElementById("lastsave").textContent="SAVED · "+new Date().toLocaleTimeString("ja-JP")}
+
+// ---- rollover: if the routine day changed, commit yesterday's state to log
+function rolloverIfNeeded(){
+  const today=routineDayKey();
+  if(data.routine.currentDay!==today){
+    data.routine.currentDay=today;
+  }
+  // ensure today's log entry exists
+  if(!data.routine.log[today])data.routine.log[today]={};
+}
+
+// ====== RENDER ======
+function render(){
+  rolloverIfNeeded();
+  renderRoutine();
+  renderBoard();
+  renderMetrics();
+  document.getElementById("echo-text").textContent=MSGS[new Date().getDate()%MSGS.length];
+  save();updateClock();
+}
+
+function todayLog(){const k=data.routine.currentDay;if(!data.routine.log[k])data.routine.log[k]={};return data.routine.log[k]}
+
+function renderRoutine(){
+  const r=data.routine, log=todayLog();
+  const items=r.items;
+  const onCount=items.filter(it=>log[it.id]).length;
+  const pct=items.length?Math.round(onCount/items.length*100):0;
+  const circ=2*Math.PI*52, off=circ*(1-pct/100);
+
+  // perfect day count
+  let perfect=0;const dayKeys=Object.keys(r.log).sort();
+  dayKeys.forEach(k=>{const l=r.log[k];if(items.length&&items.every(it=>l[it.id]))perfect++});
+  // include today live
+  if(items.length&&onCount===items.length)perfect; // already counted if saved; live handled below
+  const liveStreak=currentStreak(dayKeys,items);
+
+  const checks=items.map(it=>{
+    const rate=itemRate(it.id);
+    return `<div class="rt-check ${log[it.id]?'on':''}">
+      <div class="box" onclick="toggleRt('${it.id}')"></div>
+      <span class="t" contenteditable spellcheck="false" oninput="editRt('${it.id}',this.textContent)">${esc(it.t)}</span>
+      <span class="rate">${rate}%</span>
+      <span class="x" onclick="delRt('${it.id}')">✕</span>
+    </div>`;
+  }).join("");
+
+  const note=r.notes[data.routine.currentDay]||"";
+
+  r.el=`
+    <div class="halo"></div>
+    <div class="routine-head">
+      <div class="ring-big">
+        <svg width="120" height="120">
+          <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,.08)" stroke-width="8" fill="none"/>
+          <circle cx="60" cy="60" r="52" stroke="url(#spectrum)" stroke-width="8" fill="none" stroke-linecap="round"
+            stroke-dasharray="${circ}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .6s"/>
+        </svg>
+        <div class="center"><div class="num">${pct}%</div><div class="cap">TODAY</div></div>
+      </div>
+      <div class="title">
+        <div class="k">resets daily 02:00</div>
+        <h2>今日のルーティーン</h2>
+        <div class="sub">${onCount} / ${items.length} 達成 · ${data.routine.currentDay}</div>
+      </div>
+      <div class="perfect">
+        <div class="stat"><div class="n">${perfect}</div><div class="l">Perfect Days<br>全達成累計</div></div>
+        <div class="stat"><div class="n">${liveStreak}</div><div class="l">Streak<br>連続全達成</div></div>
+      </div>
+    </div>
+
+    <div class="rt-checks">${checks}</div>
+    <span class="add-rt" onclick="addRt()">+ ルーティーン項目を追加</span>
+
+    <div class="rt-note">
+      <div class="lab">今日の記録 · メンタル / 体調</div>
+      <textarea class="note" placeholder="今日の気分、体調、しんどかったこと、嬉しかったこと…。書ける範囲で。空欄でも大丈夫。"
+        oninput="setRtNote(this.value)">${esc(note)}</textarea>
+    </div>
+
+    <div class="analytics">
+      <div class="lab">直近14日の達成ログ</div>
+      <div class="heat">${heatHTML()}</div>
+      <div class="heat-legend">
+        <span class="lg"><i style="background:linear-gradient(135deg,#e0913f,#b8443e)"></i>全達成</span>
+        <span class="lg"><i style="background:rgba(34,211,238,.30)"></i>一部</span>
+        <span class="lg"><i style="background:rgba(120,40,60,.3)"></i>未達成</span>
+        <span class="lg"><i style="background:rgba(255,255,255,.06)"></i>記録なし</span>
+      </div>
+      <div class="lab" style="margin-top:18px">項目別 達成率（記録のある日ベース）</div>
+      <div class="breakdown">${breakdownHTML()}</div>
+    </div>
+  `;
+  document.getElementById("routine").innerHTML=r.el;
+}
+
+function itemRate(id){
+  const log=data.routine.log;const keys=Object.keys(log);
+  let tot=0,on=0;
+  keys.forEach(k=>{if(id in log[k]){tot++;if(log[k][id])on++}});
+  // include today live
+  const tk=data.routine.currentDay,tl=data.routine.log[tk]||{};
+  if(!(id in tl)){} // today only counts once toggled
+  return tot?Math.round(on/tot*100):0;
+}
+function breakdownHTML(){
+  return data.routine.items.map(it=>{
+    const r=itemRate(it.id);
+    return `<div class="bd-row"><span style="flex:0 0 auto;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.t)}</span>
+      <span class="bd-bar"><i style="width:${r}%"></i></span><span class="pc">${r}%</span></div>`;
+  }).join("")||'<span style="font-size:12px;color:var(--ink-faint)">まだ項目がありません</span>';
+}
+function heatHTML(){
+  const items=data.routine.items;
+  let html="";
+  for(let i=13;i>=0;i--){
+    const d=new Date();d.setHours(d.getHours()-2);d.setDate(d.getDate()-i);
+    const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const l=data.routine.log[k];
+    let lvl="empty";
+    if(l&&items.length){
+      const done=items.filter(it=>l[it.id]).length;
+      const tracked=items.some(it=>it.id in l);
+      if(done===items.length)lvl="full";
+      else if(done>0)lvl="part";
+      else if(tracked)lvl="none";
+    }
+    const dn=d.getDate();
+    html+=`<div class="day" data-lvl="${lvl}" title="${k}">${dn}</div>`;
+  }
+  return html;
+}
+function currentStreak(keys,items){
+  if(!items.length)return 0;
+  let streak=0;
+  for(let i=0;;i++){
+    const d=new Date();d.setHours(d.getHours()-2);d.setDate(d.getDate()-i);
+    const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const l=data.routine.log[k];
+    if(l&&items.every(it=>l[it.id]))streak++;else break;
+  }
+  return streak;
+}
+
+// routine mutations
+function toggleRt(id){const log=todayLog();log[id]=!log[id];render()}
+function editRt(id,t){const it=data.routine.items.find(x=>x.id===id);if(it)it.t=t;save()}
+function addRt(){data.routine.items.push({id:uid(),t:"新しいルーティーン"});render()}
+function delRt(id){data.routine.items=data.routine.items.filter(x=>x.id!==id);
+  Object.values(data.routine.log).forEach(l=>delete l[id]);render()}
+function setRtNote(v){data.routine.notes[data.routine.currentDay]=v;save()}
+
+// ====== BOARD ======
+function renderBoard(){
+  const board=document.getElementById("board");
+  if(data.cats.length===0){
+    board.innerHTML=`<div style="text-align:center;padding:50px;color:var(--ink-faint);letter-spacing:.08em;line-height:2">NO CATEGORIES YET<br>「+ カテゴリ追加」から始めましょう。分け方は自由です。</div>`;
+    return;
+  }
+  board.innerHTML=data.cats.map(catHTML).join("");
+  document.querySelectorAll('input[type=range]').forEach(r=>r.style.setProperty('--p',r.value+'%'));
+  attachDrag();
+}
+function catHTML(c){
+  const goals=c.goals.map(g=>goalHTML(c.id,g)).join("");
+  // difficulty breakdown for this category
+  const cnt={low:0,mid:0,high:0};
+  c.goals.forEach(g=>{cnt[g.cal||"mid"]++});
+  const tally=`
+    <span class="tally"><i style="background:var(--cal-high)"></i>高 ${cnt.high}</span>
+    <span class="tally"><i style="background:var(--cal-mid)"></i>中 ${cnt.mid}</span>
+    <span class="tally"><i style="background:var(--cal-low)"></i>低 ${cnt.low}</span>`;
+  return `<div class="cat">
+    <div class="cat-head">
+      <div class="chip"></div>
+      <h3 contenteditable spellcheck="false" oninput="renameCat('${c.id}',this.textContent)">${esc(c.name)}</h3>
+      <div class="cat-tally">${tally}</div>
+      <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
+      <span class="del" onclick="delCat('${c.id}')">DELETE</span>
+    </div>
+    <div class="cards" data-cat="${c.id}">
+      ${goals}
+      <div class="add-goal" onclick="addGoal('${c.id}')">+ NEW GOAL</div>
+    </div>
+  </div>`;
+}
+function goalHTML(cid,g){
+  const cal=g.cal||"mid";
+  const col=CAL_COLOR[cal]||CAL_COLOR.mid;
+  const r=25,circ=2*Math.PI*r,off=circ*(1-g.prog/100);
+  const checks=g.checks.map((ch,i)=>`
+    <div class="check ${ch.on?'on':''}">
+      <div class="box" onclick="toggleCheck('${cid}','${g.id}',${i})"></div>
+      <span class="t" contenteditable spellcheck="false" oninput="editCheck('${cid}','${g.id}',${i},this.textContent)">${esc(ch.t)}</span>
+      <span class="x" onclick="delCheck('${cid}','${g.id}',${i})">✕</span>
+    </div>`).join("");
+  const calBtns=["low","mid","high"].map(k=>{
+    const lab={low:"低",mid:"中",high:"高"}[k];
+    return `<button class="cal-btn ${cal===k?'active':''}" data-cal="${k}" onclick="setGoalCal('${cid}','${g.id}','${k}')">${lab}</button>`;
+  }).join("");
+  return `<div class="card glass ${g.prog>=100?'done':''}" style="--cat:${col[0]};--cat-glow:${col[1]}" draggable="true" data-cat="${cid}" data-goal="${g.id}">
+    <div class="card-top">
+      <div class="grip" title="ドラッグで並べ替え">⠿</div>
+      <div class="ring">
+        <svg width="60" height="60">
+          <circle cx="30" cy="30" r="${r}" stroke="rgba(255,255,255,.08)" stroke-width="4" fill="none"/>
+          <circle cx="30" cy="30" r="${r}" stroke="var(--cat,#e0913f)" stroke-width="4" fill="none" stroke-linecap="round"
+            stroke-dasharray="${circ}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .4s"/>
+        </svg>
+        <div class="pct">${g.prog}%</div>
+      </div>
+      <div class="card-title">
+        <div class="name" contenteditable spellcheck="false" oninput="renameGoal('${cid}','${g.id}',this.textContent)">${esc(g.name)}</div>
+        <div class="meta">${g.prog>=100?'■ COMPLETE':'▸ IN PROGRESS'}</div>
+      </div>
+    </div>
+    <div class="cal-row">
+      <span class="cal-lab">難易度</span>
+      <div class="cal-toggle">${calBtns}</div>
+    </div>
+    <div class="slider-row">
+      <input type="range" min="0" max="100" value="${g.prog}" oninput="setProg('${cid}','${g.id}',this.value,this)">
+    </div>
+    <div class="checks">
+      <div class="clab">今日の小さな一歩</div>
+      ${checks}
+      <span class="add-check" onclick="addCheck('${cid}','${g.id}')">+ ステップを追加</span>
+    </div>
+    <div class="notes">
+      <div class="nlab">課題 / 次に直すこと</div>
+      <textarea class="note" placeholder="詰まっている点、次に直すこと、気づき…。責めずに事実だけでOK。"
+        oninput="setNote('${cid}','${g.id}',this.value)">${esc(g.note||"")}</textarea>
+    </div>
+    <div class="card-foot"><span class="del-g" onclick="delGoal('${cid}','${g.id}')">REMOVE</span></div>
+  </div>`;
+}
+
+// goal mutations
+function findG(cid,gid){const c=data.cats.find(x=>x.id===cid);return[c,c.goals.find(x=>x.id===gid)]}
+function setProg(cid,gid,v,el){const[,g]=findG(cid,gid);g.prog=+v;el.style.setProperty('--p',v+'%');
+  const card=el.closest('.card');card.querySelector('.pct').textContent=v+'%';
+  const r=25,circ=2*Math.PI*r;card.querySelector('.ring circle:last-child').style.strokeDashoffset=circ*(1-v/100);
+  card.querySelector('.meta').textContent=v>=100?'■ COMPLETE':'▸ IN PROGRESS';card.classList.toggle('done',v>=100);
+  renderMetrics();save()}
+function renameGoal(cid,gid,t){const[,g]=findG(cid,gid);g.name=t;save()}
+function setNote(cid,gid,t){const[,g]=findG(cid,gid);g.note=t;save()}
+function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[]});render()}
+function delGoal(cid,gid){const c=data.cats.find(x=>x.id===cid);c.goals=c.goals.filter(x=>x.id!==gid);render()}
+function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);g.checks[i].on=!g.checks[i].on;render()}
+function editCheck(cid,gid,i,t){const[,g]=findG(cid,gid);g.checks[i].t=t;save()}
+function addCheck(cid,gid){const[,g]=findG(cid,gid);g.checks.push({t:"新しいステップ",on:false});render()}
+function delCheck(cid,gid,i){const[,g]=findG(cid,gid);g.checks.splice(i,1);render()}
+function setGoalCal(cid,gid,k){const[,g]=findG(cid,gid);g.cal=k;render()}
+function renameCat(cid,t){data.cats.find(x=>x.id===cid).name=t;save()}
+function delCat(cid){if(confirm("このカテゴリと中の目標をすべて削除します。よろしいですか？")){data.cats=data.cats.filter(x=>x.id!==cid);render()}}
+
+function renderMetrics(){
+  let a=[];data.cats.forEach(c=>c.goals.forEach(g=>a.push(g)));
+  const t=a.length,avg=t?Math.round(a.reduce((s,g)=>s+g.prog,0)/t):0,done=a.filter(g=>g.prog>=100).length;
+  const cnt={low:0,mid:0,high:0};a.forEach(g=>{cnt[g.cal||"mid"]++});
+  const log=todayLog();const items=data.routine.items;
+  const rdone=items.filter(it=>log[it.id]).length;
+  const diffMetric=`<div class="metric glass"><div class="lab">BY DIFFICULTY · 難易度別</div>
+    <div class="diff-split">
+      <span class="ds"><i style="background:var(--cal-high)"></i><b>${cnt.high}</b>高</span>
+      <span class="ds"><i style="background:var(--cal-mid)"></i><b>${cnt.mid}</b>中</span>
+      <span class="ds"><i style="background:var(--cal-low)"></i><b>${cnt.low}</b>低</span>
+    </div></div>`;
+  document.getElementById("metrics").innerHTML=
+    metric("ACTIVE GOALS",t,"")+
+    metric("AVG PROGRESS",avg,"%","accent")+
+    metric("COMPLETED",done,"/"+t)+
+    diffMetric+
+    metric("ROUTINE TODAY",rdone,"/"+items.length,"accent");
+}
+function metric(lab,val,suf,cls=""){return `<div class="metric glass ${cls}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div></div>`}
+
+// ====== DRAG & DROP (reorder within a category) ======
+let dragEl=null;
+function attachDrag(){
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{dragEl=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+    card.addEventListener('dragend',()=>{card.classList.remove('dragging');document.querySelectorAll('.card.over').forEach(c=>c.classList.remove('over'));commitOrder()});
+    card.addEventListener('dragover',e=>{
+      e.preventDefault();
+      if(!dragEl||dragEl===card)return;
+      if(dragEl.dataset.cat!==card.dataset.cat)return; // same category only
+      const box=card.getBoundingClientRect();
+      const after=(e.clientY-box.top)/box.height>0.5;
+      card.classList.add('over');
+      const parent=card.parentNode;
+      if(after)parent.insertBefore(dragEl,card.nextSibling);
+      else parent.insertBefore(dragEl,card);
+    });
+    card.addEventListener('dragleave',()=>card.classList.remove('over'));
+  });
+}
+function commitOrder(){
+  document.querySelectorAll('.cards').forEach(box=>{
+    const cid=box.dataset.cat;const c=data.cats.find(x=>x.id===cid);if(!c)return;
+    const order=[...box.querySelectorAll('.card')].map(el=>el.dataset.goal);
+    c.goals.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
+  });
+  save();
+}
+
+// category modal
+function openCat(){document.getElementById("catModal").classList.add("show");document.getElementById("catName").focus()}
+function closeCat(){document.getElementById("catModal").classList.remove("show");document.getElementById("catName").value=""}
+function addCat(){const n=document.getElementById("catName").value.trim();if(!n)return;data.cats.push({id:uid(),name:n,cal:"mid",goals:[]});closeCat();render()}
+document.getElementById("catName").addEventListener("keydown",e=>{if(e.key==="Enter")addCat()});
+
+// backup
+function exportData(){const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="progress-deck-"+new Date().toISOString().slice(0,10)+".json";a.click()}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.cats){data=migrate(d);render();alert("復元しました。")}}catch(x){alert("ファイルを読み込めませんでした。")}};r.readAsText(f)}
+
+function updateClock(){const now=new Date();
+  const t=now.toLocaleTimeString("ja-JP");
+  const d=now.toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit",weekday:"short"});
+  document.getElementById("clock").innerHTML=`SYSTEM ONLINE · <b>${d}</b><br>${t}`}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+
+setInterval(()=>{updateClock();
+  // auto-rollover check every minute
+  if(data.routine.currentDay!==routineDayKey()){render()}
+},1000);
+render();
+</script>
+</body>
+</html>
