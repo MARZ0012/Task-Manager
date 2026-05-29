@@ -329,7 +329,7 @@
   .today-head .title .k{font-size:10.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
   .today-head .title h2{font-size:25px;font-weight:200;margin-top:10px;letter-spacing:.05em}
   .today-head .title .sub{font-size:12px;color:var(--ink-3);margin-top:10px;letter-spacing:.06em;font-family:"Roboto Mono",monospace;font-weight:300}
-  .today-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+  .today-list{display:flex;flex-direction:column;gap:10px}
   .td-item{display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease)}
   .td-item.on{background:rgba(224,145,63,.07);border-color:rgba(224,145,63,.28)}
   .td-item .box{width:19px;height:19px;border-radius:6px;border:1.4px solid var(--line-2);flex:0 0 auto;cursor:pointer;position:relative;transition:.18s}
@@ -384,9 +384,17 @@
   .notes{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
   .nlab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
   .card-foot{display:flex;justify-content:flex-end;margin-top:16px}
+  .meta.due{color:var(--cal-mid);margin-top:2px}
+  .cat-due{font-size:11px;color:var(--cal-mid);letter-spacing:.06em;font-family:"Roboto Mono",monospace;font-weight:300}
   .del-g{font-size:10px;color:var(--ink-4);cursor:pointer;letter-spacing:.16em;text-transform:uppercase}
   .del-g:hover{color:var(--cal-high)}
 
+  .goal-due-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .due-lab{font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);font-weight:400;flex:0 0 auto}
+  .due-input{background:transparent;border:none;border-bottom:1px solid var(--line-2);color:var(--ink-2);font-family:"Roboto Mono",monospace;font-size:12px;padding:2px 4px;color-scheme:dark;cursor:pointer;outline:none}
+  .due-input:focus{border-bottom-color:var(--spec-amber)}
+  .cat-due-input{background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--ink-3);font-family:"Roboto Mono",monospace;font-size:10px;padding:4px 8px;color-scheme:dark;cursor:pointer;outline:none;letter-spacing:.04em}
+  .cat-due-input:focus{border-color:var(--spec-amber);color:var(--ink-2)}
   .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
     border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
   .add-goal:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
@@ -1005,9 +1013,11 @@ function catHTML(c,index,total){
       </div>
       <div class="chip"></div>
       <h3 contenteditable spellcheck="false" oninput="renameCat('${c.id}',this.textContent)">${esc(c.name)}</h3>
+      ${c.due?`<span class="cat-due">⏱ ${c.due}</span>`:''}
       <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
       <div class="cat-tally">${tally}</div>
       <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
+      <input type="date" class="cat-due-input" title="プロジェクト締め切り" value="${c.due||''}" onchange="setCatDue('${c.id}',this.value)">
       <span class="del" onclick="delCat('${c.id}')">DELETE</span>
     </div>
     <div class="cards" data-cat="${c.id}">
@@ -1062,6 +1072,7 @@ function goalHTML(cid,g){
       <div class="card-title">
         <div class="name" contenteditable spellcheck="false" oninput="renameGoal('${cid}','${g.id}',this.textContent)">${esc(g.name)}</div>
         <div class="meta">${prog>=100?'■ COMPLETE':'▸ IN PROGRESS'}</div>
+        ${g.due?`<div class="meta due">⏱ ${g.due}</div>`:''}
       </div>
     </div>
     <div class="cal-row">
@@ -1154,6 +1165,9 @@ function commitOrder(){
   });
   save();
 }
+
+function setGoalDue(cid,gid,val){const[,g]=findG(cid,gid);if(g){g.due=val;save();renderBoard();}}
+function setCatDue(cid,val){const c=data.cats.find(x=>x.id===cid);if(c){c.due=val;save();renderBoard();}}
 
 // category modal
 function openCat(){document.getElementById("catModal").classList.add("show");document.getElementById("catName").focus()}
