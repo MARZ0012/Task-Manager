@@ -372,7 +372,7 @@
   /* today-head simple (リング無し) */
   .today-head.simple{margin-bottom:20px}
   .today-head.simple .title h2{font-size:23px}
-  .today-head.simple .td-big{font-size:26px;font-weight:600;letter-spacing:.12em;color:var(--ink);text-transform:uppercase}
+  .today-head.simple .td-big{font-size:26px;font-weight:200;letter-spacing:.14em;color:var(--ink);text-transform:uppercase}
   .today-head.simple .td-big + .sub{margin-top:10px}
 
   /* 今日の予定（読み取り専用） */
@@ -474,6 +474,36 @@
   .cat-due-wrap{position:relative;display:flex;align-items:center}
   .cat-due-input{position:absolute;opacity:0;width:1px;height:1px;inset:auto;pointer-events:none}
   .cat-due-label{font-size:13px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;padding:4px 10px;border:1px solid rgba(224,145,63,.35);border-radius:8px;white-space:nowrap;position:relative;z-index:1}
+
+  /* ---- 締め切りミニカレンダー（自前・世界観踏襲） ---- */
+  .due-picker{position:absolute;z-index:200;width:288px;padding:16px;border-radius:16px;
+    background:rgba(16,14,11,.82);border:1px solid var(--line-2);
+    backdrop-filter:blur(26px) saturate(130%);-webkit-backdrop-filter:blur(26px) saturate(130%);
+    box-shadow:0 18px 50px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.03) inset;}
+  .due-picker::before{content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+    background:radial-gradient(120% 90% at 18% 0%, rgba(224,145,63,.10), transparent 55%),
+               radial-gradient(120% 90% at 90% 100%, rgba(46,90,143,.10), transparent 55%);}
+  .due-picker>*{position:relative;z-index:1}
+  .dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .dp-month{font-size:14px;font-weight:300;letter-spacing:.06em;color:var(--ink);font-family:"Roboto Mono",monospace}
+  .dp-nav{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:8px;width:30px;height:28px;font-size:15px;cursor:pointer;font-family:inherit;transition:.16s}
+  .dp-nav:hover{border-color:var(--spec-amber);color:var(--ink);background:rgba(224,145,63,.08)}
+  .dp-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px}
+  .dp-dow{text-align:center;font-size:10.5px;letter-spacing:.04em;color:var(--ink-3);font-weight:400;padding:2px 0}
+  .dp-dow.sun{color:var(--cal-high)} .dp-dow.sat{color:var(--spec-blue)}
+  .dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .dp-cell{height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:300;
+    color:var(--ink-2);border-radius:9px;cursor:pointer;font-family:"Roboto Mono",monospace;transition:.14s var(--ease)}
+  .dp-cell:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+  .dp-cell.blank{cursor:default}
+  .dp-cell.blank:hover{background:transparent}
+  .dp-cell.today{border:1px solid rgba(224,145,63,.45);color:var(--spec-amber)}
+  .dp-cell.sel{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));color:#150a04;font-weight:500;border:none}
+  .dp-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .dp-clear{background:transparent;border:1px solid var(--line-2);color:var(--ink-3);border-radius:8px;padding:7px 14px;font-size:11px;font-family:inherit;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;transition:.16s}
+  .dp-clear:hover{border-color:var(--cal-high);color:var(--cal-high)}
+  .dp-close{background:transparent;border:none;color:var(--ink-3);font-size:11px;font-family:inherit;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;transition:.16s}
+  .dp-close:hover{color:var(--ink)}
   .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
     border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
   .add-goal:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
@@ -520,7 +550,7 @@
   .up-label{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:22px 26px;border-right:1px solid var(--line);min-width:172px}
   .up-label .k{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
   .up-label .ic{font-size:21px;font-weight:100;color:var(--ink);letter-spacing:.04em}
-  .up-label .up-big{font-size:26px;font-weight:600;letter-spacing:.12em;color:var(--ink);text-transform:uppercase}
+  .up-label .up-big{font-size:26px;font-weight:200;letter-spacing:.14em;color:var(--ink);text-transform:uppercase}
   .up-list{flex:1;display:flex;gap:0;overflow-x:auto}
   .up-item{flex:0 0 auto;min-width:182px;padding:20px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
   .up-item:last-child{border-right:none}
@@ -1116,7 +1146,7 @@ function editAdhoc(id,t){const a=data.routine.adhoc.find(x=>x.id===id);if(a){a.t
 function delAdhoc(id){data.routine.adhoc=data.routine.adhoc.filter(x=>x.id!==id);render();}
 function toggleAdhocActive(id){
   const a=data.routine.adhoc.find(x=>x.id===id); if(!a)return;
-  clearAllActive(); a.active=!a.active; render();
+  const cur=a.active; clearAllActive(); a.active=!cur; render();
 }
 // 着手中は全体で1つだけ
 function clearAllActive(){
@@ -1170,8 +1200,7 @@ function catHTML(c,index,total){
       <div class="chip"></div>
       <h3 contenteditable spellcheck="false" oninput="renameCat('${c.id}',this.textContent)">${esc(c.name)}</h3>
       <div class="cat-due-wrap">
-        <input type="date" class="cat-due-input" value="${c.due||''}" onchange="setCatDue('${c.id}',this.value)">
-        <span class="cat-due-label" onclick="openPicker(this)">${c.due?'⏱ '+c.due.slice(5).replace('-','/'):'締め切りを設定'}</span>
+        <span class="cat-due-label" onclick="openDuePicker(event,'cat','${c.id}')">${c.due?'⏱ '+c.due.slice(5).replace('-','/'):'締め切りを設定'}</span>
       </div>
 
       <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
@@ -1231,8 +1260,7 @@ function goalHTML(cid,g){
       <div class="card-title">
         <div class="name" contenteditable spellcheck="false" oninput="renameGoal('${cid}','${g.id}',this.textContent)">${esc(g.name)}</div>
         <div class="goal-due-inline">
-          <input type="date" class="due-input-inline" value="${g.due||''}" onchange="setGoalDue('${cid}','${g.id}',this.value)">
-          ${g.due?`<span class="due-badge-inline" onclick="openPicker(this)">⏱ ${g.due.slice(5).replace('-','/')}</span>`:'<span class="due-badge-inline muted" onclick="openPicker(this)">締め切りを設定</span>'}
+          ${g.due?`<span class="due-badge-inline" onclick="openDuePicker(event,'goal','${cid}','${g.id}')">⏱ ${g.due.slice(5).replace('-','/')}</span>`:`<span class="due-badge-inline muted" onclick="openDuePicker(event,'goal','${cid}','${g.id}')">締め切りを設定</span>`}
         </div>
         <div class="meta">${prog>=100?'■ COMPLETE':'▸ IN PROGRESS'}</div>
 
@@ -1403,15 +1431,85 @@ function commitOrder(){
 
 function setGoalDue(cid,gid,val){const[,g]=findG(cid,gid);if(g){g.due=val;save();renderBoard();}}
 function setCatDue(cid,val){const c=data.cats.find(x=>x.id===cid);if(c){c.due=val;save();renderBoard();}}
-// 締め切りラベルのクリックで隣のdate inputのカレンダーを開く（PC・スマホ両対応）
-function openPicker(labelEl){
-  const input=labelEl.parentNode.querySelector('input[type=date]');
-  if(!input)return;
-  try{
-    if(typeof input.showPicker==="function"){input.showPicker();return;}
-  }catch(e){}
-  // フォールバック：focusしてクリック
-  input.focus(); input.click();
+
+// ====== 締め切り用ミニカレンダー（世界観に合わせた自前ポップオーバー） ======
+let _duePicker={kind:null,cid:null,gid:null,cursor:null};
+function getDueValue(){
+  if(_duePicker.kind==="goal"){const[,g]=findG(_duePicker.cid,_duePicker.gid);return g?g.due:"";}
+  if(_duePicker.kind==="cat"){const c=data.cats.find(x=>x.id===_duePicker.cid);return c?c.due:"";}
+  return "";
+}
+function applyDueValue(val){
+  if(_duePicker.kind==="goal")setGoalDue(_duePicker.cid,_duePicker.gid,val);
+  else if(_duePicker.kind==="cat")setCatDue(_duePicker.cid,val);
+}
+function openDuePicker(ev,kind,cid,gid){
+  ev.stopPropagation();
+  _duePicker.kind=kind; _duePicker.cid=cid; _duePicker.gid=gid||null;
+  const cur=getDueValue();
+  _duePicker.cursor = cur ? new Date(cur+"T00:00:00") : new Date();
+  _duePicker.cursor.setDate(1);
+  renderDuePicker(ev.currentTarget);
+}
+function duePickerShift(n){
+  _duePicker.cursor.setMonth(_duePicker.cursor.getMonth()+n);
+  renderDuePicker(null);
+}
+function selectDueDate(key){ applyDueValue(key); closeDuePicker(); }
+function clearDue(){ applyDueValue(""); closeDuePicker(); }
+function closeDuePicker(){ const p=document.getElementById("duePicker"); if(p)p.remove(); }
+function renderDuePicker(anchorEl){
+  let p=document.getElementById("duePicker");
+  if(!p){
+    p=document.createElement("div"); p.id="duePicker"; p.className="due-picker glass";
+    document.body.appendChild(p);
+    // 外側クリックで閉じる
+    setTimeout(()=>{document.addEventListener("click",_duePickerOutside);},0);
+  }
+  const cur=getDueValue();
+  const y=_duePicker.cursor.getFullYear(), m=_duePicker.cursor.getMonth();
+  const first=new Date(y,m,1), startDow=first.getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const todayKey=dateKey(new Date());
+  const DOWmini=["日","月","火","水","木","金","土"];
+  let dows=DOWmini.map((d,i)=>`<div class="dp-dow ${i===0?'sun':''}${i===6?'sat':''}">${d}</div>`).join("");
+  let cells="";
+  for(let i=0;i<startDow;i++)cells+=`<div class="dp-cell blank"></div>`;
+  for(let day=1;day<=daysInMonth;day++){
+    const key=dateKey(new Date(y,m,day));
+    const isToday=key===todayKey, isSel=key===cur;
+    cells+=`<div class="dp-cell ${isToday?'today':''} ${isSel?'sel':''}" onclick="selectDueDate('${key}')">${day}</div>`;
+  }
+  p.innerHTML=`
+    <div class="dp-head">
+      <button class="dp-nav" onclick="duePickerShift(-1)">‹</button>
+      <div class="dp-month">${y}年 ${m+1}月</div>
+      <button class="dp-nav" onclick="duePickerShift(1)">›</button>
+    </div>
+    <div class="dp-dow-row">${dows}</div>
+    <div class="dp-grid">${cells}</div>
+    <div class="dp-foot">
+      <button class="dp-clear" onclick="clearDue()">クリア</button>
+      <button class="dp-close" onclick="closeDuePicker()">閉じる</button>
+    </div>`;
+  // 位置決め：アンカー近くに、画面外へ出ないよう調整
+  if(anchorEl){
+    const r=anchorEl.getBoundingClientRect();
+    const pw=288, ph=360;
+    let left=r.left+window.scrollX;
+    let top=r.bottom+window.scrollY+8;
+    if(left+pw>window.scrollX+document.documentElement.clientWidth-12)
+      left=window.scrollX+document.documentElement.clientWidth-pw-12;
+    if(left<window.scrollX+12)left=window.scrollX+12;
+    // 下に入らなければ上に出す
+    if(r.bottom+ph>document.documentElement.clientHeight && r.top-ph>0)
+      top=r.top+window.scrollY-ph-8;
+    p.style.left=left+"px"; p.style.top=top+"px";
+  }
+}
+function _duePickerOutside(e){
+  const p=document.getElementById("duePicker");
+  if(p && !p.contains(e.target)){ p.remove(); document.removeEventListener("click",_duePickerOutside); }
 }
 
 // category modal
