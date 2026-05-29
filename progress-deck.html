@@ -372,6 +372,8 @@
   /* today-head simple (リング無し) */
   .today-head.simple{margin-bottom:20px}
   .today-head.simple .title h2{font-size:23px}
+  .today-head.simple .td-big{font-size:26px;font-weight:600;letter-spacing:.12em;color:var(--ink);text-transform:uppercase}
+  .today-head.simple .td-big + .sub{margin-top:10px}
 
   /* 今日の予定（読み取り専用） */
   .td-events{margin-bottom:18px;border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:14px 16px}
@@ -465,12 +467,12 @@
 
   /* ---- goal due (タイトル下インライン) ---- */
   .goal-due-inline{display:flex;align-items:center;gap:8px;margin-top:5px;position:relative}
-  .due-input-inline{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0;z-index:2}
+  .due-input-inline{position:absolute;opacity:0;width:1px;height:1px;inset:auto;pointer-events:none}
   .due-badge-inline{font-size:11px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;position:relative;z-index:1}
   .due-badge-inline.muted{color:var(--ink-4);font-size:10.5px}
   /* ---- cat due (プロジェクト締め切り) ---- */
   .cat-due-wrap{position:relative;display:flex;align-items:center}
-  .cat-due-input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;inset:0;z-index:2}
+  .cat-due-input{position:absolute;opacity:0;width:1px;height:1px;inset:auto;pointer-events:none}
   .cat-due-label{font-size:13px;font-family:"Roboto Mono",monospace;color:var(--spec-amber);letter-spacing:.06em;cursor:pointer;padding:4px 10px;border:1px solid rgba(224,145,63,.35);border-radius:8px;white-space:nowrap;position:relative;z-index:1}
   .add-goal{display:flex;align-items:center;justify-content:center;gap:9px;min-height:130px;cursor:pointer;
     border:1px dashed var(--line-2);border-radius:var(--r);color:var(--ink-4);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;transition:.25s var(--ease)}
@@ -518,6 +520,7 @@
   .up-label{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:22px 26px;border-right:1px solid var(--line);min-width:172px}
   .up-label .k{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
   .up-label .ic{font-size:21px;font-weight:100;color:var(--ink);letter-spacing:.04em}
+  .up-label .up-big{font-size:26px;font-weight:600;letter-spacing:.12em;color:var(--ink);text-transform:uppercase}
   .up-list{flex:1;display:flex;gap:0;overflow-x:auto}
   .up-item{flex:0 0 auto;min-width:182px;padding:20px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
   .up-item:last-child{border-right:none}
@@ -693,7 +696,7 @@
   <!-- ============ TASKS VIEW ============ -->
   <div id="view-tasks">
     <!-- TODAY -->
-    <div class="sec-title">Today — 今日すること</div>
+    <div class="sec-title">Today</div>
     <div class="today glass" id="today"></div>
 
     <!-- STATS -->
@@ -1067,8 +1070,7 @@ function renderToday(){
   el.innerHTML=`
     <div class="today-head simple">
       <div class="title">
-        <div class="k">today's focus</div>
-        <h2>今日すること</h2>
+        <div class="td-big">TODAY'S FOCUS</div>
         <div class="sub">残り ${openCount} 件 · ステップ ${doneSteps}/${steps.length} 完了</div>
       </div>
     </div>
@@ -1169,7 +1171,7 @@ function catHTML(c,index,total){
       <h3 contenteditable spellcheck="false" oninput="renameCat('${c.id}',this.textContent)">${esc(c.name)}</h3>
       <div class="cat-due-wrap">
         <input type="date" class="cat-due-input" value="${c.due||''}" onchange="setCatDue('${c.id}',this.value)">
-        <span class="cat-due-label">${c.due?'⏱ '+c.due.slice(5).replace('-','/'):'締め切りを設定'}</span>
+        <span class="cat-due-label" onclick="openPicker(this)">${c.due?'⏱ '+c.due.slice(5).replace('-','/'):'締め切りを設定'}</span>
       </div>
 
       <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
@@ -1230,7 +1232,7 @@ function goalHTML(cid,g){
         <div class="name" contenteditable spellcheck="false" oninput="renameGoal('${cid}','${g.id}',this.textContent)">${esc(g.name)}</div>
         <div class="goal-due-inline">
           <input type="date" class="due-input-inline" value="${g.due||''}" onchange="setGoalDue('${cid}','${g.id}',this.value)">
-          ${g.due?`<span class="due-badge-inline">⏱ ${g.due.slice(5).replace('-','/')}</span>`:'<span class="due-badge-inline muted">締め切りを設定</span>'}
+          ${g.due?`<span class="due-badge-inline" onclick="openPicker(this)">⏱ ${g.due.slice(5).replace('-','/')}</span>`:'<span class="due-badge-inline muted" onclick="openPicker(this)">締め切りを設定</span>'}
         </div>
         <div class="meta">${prog>=100?'■ COMPLETE':'▸ IN PROGRESS'}</div>
 
@@ -1401,6 +1403,16 @@ function commitOrder(){
 
 function setGoalDue(cid,gid,val){const[,g]=findG(cid,gid);if(g){g.due=val;save();renderBoard();}}
 function setCatDue(cid,val){const c=data.cats.find(x=>x.id===cid);if(c){c.due=val;save();renderBoard();}}
+// 締め切りラベルのクリックで隣のdate inputのカレンダーを開く（PC・スマホ両対応）
+function openPicker(labelEl){
+  const input=labelEl.parentNode.querySelector('input[type=date]');
+  if(!input)return;
+  try{
+    if(typeof input.showPicker==="function"){input.showPicker();return;}
+  }catch(e){}
+  // フォールバック：focusしてクリック
+  input.focus(); input.click();
+}
 
 // category modal
 function openCat(){document.getElementById("catModal").classList.add("show");document.getElementById("catName").focus()}
@@ -1544,7 +1556,7 @@ function renderUpcoming(){
       </div>`;
     }).join("")+`</div>`;
   }
-  el.innerHTML=`<div class="up-label"><span class="k">Upcoming</span><span class="ic">直近の予定</span></div>${body}`;
+  el.innerHTML=`<div class="up-label"><span class="up-big">UPCOMING</span></div>${body}`;
 }
 
 // ======================================================================
