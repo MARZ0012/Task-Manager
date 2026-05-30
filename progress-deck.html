@@ -210,6 +210,14 @@
   .clock{text-align:right;font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.14em;line-height:2.1;font-weight:300}
   .clock b{color:var(--ink-2);font-weight:400}
   .clock-row{display:flex;align-items:center;gap:12px}
+  .weather{display:flex;align-items:center;gap:7px;font-family:"Roboto Mono",monospace;color:var(--ink-2);white-space:nowrap}
+  .weather:empty{display:none}
+  .weather .wx-ic{width:26px;height:26px;flex:0 0 auto;display:inline-flex}
+  .weather .wx-ic svg{width:100%;height:100%;display:block}
+  .weather .wx-now{font-size:15px;color:var(--ink);font-weight:300;letter-spacing:.02em}
+  .weather .wx-hl{font-size:10px;letter-spacing:.02em;display:flex;flex-direction:column;line-height:1.25}
+  .weather .wx-hl .hi{color:var(--spec-amber)}
+  .weather .wx-hl .lo{color:#7ea3d8}
   .sync-btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:50%;
     width:34px;height:34px;flex:0 0 auto;font-size:16px;line-height:1;cursor:pointer;font-family:inherit;
     display:flex;align-items:center;justify-content:center;transition:.18s var(--ease);-webkit-tap-highlight-color:transparent}
@@ -785,6 +793,10 @@
     .brand .kicker{font-size:10px;letter-spacing:.32em}
     .head-right{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:10px}
     .clock{font-size:10px;line-height:1.7;text-align:left}
+    .weather{gap:5px}
+    .weather .wx-ic{width:22px;height:22px}
+    .weather .wx-now{font-size:13px}
+    .weather .wx-hl{font-size:8.5px}
     .tabs{flex:0 0 auto}
     .tab{padding:8px 16px;font-size:10px}
 
@@ -900,6 +912,7 @@
     </div>
     <div class="head-right">
       <div class="clock-row">
+        <div class="weather" id="weather" title="東京の天気"></div>
         <div class="clock" id="clock">SYNCING…</div>
         <button class="sync-btn" id="syncBtn" onclick="syncNow()" title="最新データに同期（長押しで強制リロード）">⟳</button>
       </div>
@@ -1163,6 +1176,7 @@ function syncNow(){
   if(_syncing) return;
   // 編集中の未保存分があれば先に書き込んでから取り直す（自分の編集を消さない）
   if(_saveTimer) saveNow();
+  loadWeather();   // 天気も同期ボタンで更新
   const btn=document.getElementById("syncBtn");
   _syncing=true; if(btn) btn.classList.add("spin");
   const clock=document.getElementById("clock");
@@ -1187,6 +1201,73 @@ function _finishSync(btn,clock,msg){
   if(clock){
     const prev=clock.textContent;
     clock.textContent=msg+" · "+new Date().toLocaleTimeString("ja-JP");
+  }
+}
+
+// ====================== 天気（東京・Open-Meteo / APIキー不要） ======================
+// 炎と同じテイストのSVGアイコン。種類：sun / partly / cloud / rain / snow / storm / fog
+function wxIcon(kind){
+  const Y1='#fff6cf',Y2='#ffd84e',Y3='#ff9f2c',B='#ff7a24';
+  const W='<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">';
+  const cloudGray='<linearGradient id="wcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c9ccd4"/><stop offset="100%" stop-color="#8b9099"/></linearGradient>';
+  const cloudShape='<path fill="url(#wcg)" d="M30 60 a15 15 0 0 1 1 -29 a19 19 0 0 1 36 4 a13 13 0 0 1 -3 25 Z"/>';
+  if(kind==='sun'){
+    let rays='';
+    for(let i=0;i<8;i++){const a=Math.PI*2*i/8;const x=50+Math.cos(a)*36,y=50+Math.sin(a)*36;rays+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${B}"/>`;}
+    return W+`<defs><radialGradient id="wsg" cx="50%" cy="45%" r="60%"><stop offset="0%" stop-color="${Y1}"/><stop offset="55%" stop-color="${Y2}"/><stop offset="100%" stop-color="${Y3}"/></radialGradient></defs>${rays}<circle cx="50" cy="50" r="24" fill="url(#wsg)"/></svg>`;
+  }
+  if(kind==='partly'){
+    return W+`<defs><radialGradient id="wsg2" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="${Y1}"/><stop offset="60%" stop-color="${Y2}"/><stop offset="100%" stop-color="${Y3}"/></radialGradient><linearGradient id="wcg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d2d5dc"/><stop offset="100%" stop-color="#969ba4"/></linearGradient></defs><circle cx="38" cy="34" r="17" fill="url(#wsg2)"/><path fill="url(#wcg2)" d="M34 74 a15 15 0 0 1 1 -29 a18 18 0 0 1 35 4 a13 13 0 0 1 -3 25 Z"/></svg>`;
+  }
+  if(kind==='rain'){
+    return W+`<defs>${cloudGray}</defs>${cloudShape}<g fill="#5fa8e0"><path d="M36 68 q-3 5 0 8 q4 2 4 -3 q0 -3 -4 -5Z"/><path d="M50 70 q-3 5 0 8 q4 2 4 -3 q0 -3 -4 -5Z"/><path d="M64 68 q-3 5 0 8 q4 2 4 -3 q0 -3 -4 -5Z"/></g></svg>`;
+  }
+  if(kind==='snow'){
+    return W+`<defs>${cloudGray}</defs>${cloudShape}<g fill="#dbe7f2"><circle cx="37" cy="72" r="3.2"/><circle cx="50" cy="76" r="3.2"/><circle cx="63" cy="72" r="3.2"/></g></svg>`;
+  }
+  if(kind==='storm'){
+    return W+`<defs><linearGradient id="wct" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b8bcc6"/><stop offset="100%" stop-color="#7a7f88"/></linearGradient></defs><path fill="url(#wct)" d="M30 58 a15 15 0 0 1 1 -29 a19 19 0 0 1 36 4 a13 13 0 0 1 -3 25 Z"/><path fill="${Y2}" stroke="${Y3}" stroke-width="1" d="M52 54 L40 78 L49 78 L44 92 L62 66 L52 66 Z"/></svg>`;
+  }
+  // cloud / fog
+  return W+`<defs>${cloudGray}</defs>${cloudShape}</svg>`;
+}
+// WMO天気コード → アイコン種別
+function wmoToKind(code){
+  if(code===0) return 'sun';
+  if(code===1||code===2) return 'partly';
+  if(code===3) return 'cloud';
+  if(code>=45&&code<=48) return 'cloud';      // 霧
+  if(code>=51&&code<=67) return 'rain';        // 霧雨・雨
+  if(code>=71&&code<=77) return 'snow';        // 雪
+  if(code>=80&&code<=82) return 'rain';        // にわか雨
+  if(code>=85&&code<=86) return 'snow';        // にわか雪
+  if(code>=95) return 'storm';                 // 雷雨
+  return 'cloud';
+}
+let _wxLast=0;
+async function loadWeather(force){
+  // 直近10分以内に取得済みなら再取得しない（負荷軽減）
+  if(!force && Date.now()-_wxLast < 10*60*1000 && document.getElementById('weather').innerHTML) return;
+  const el=document.getElementById('weather'); if(!el) return;
+  // 東京
+  const url="https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917"
+    +"&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min"
+    +"&timezone=Asia%2FTokyo&forecast_days=1";
+  try{
+    const res=await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const j=await res.json();
+    const cur=Math.round(j.current.temperature_2m);
+    const code=j.current.weather_code;
+    const hi=Math.round(j.daily.temperature_2m_max[0]);
+    const lo=Math.round(j.daily.temperature_2m_min[0]);
+    el.innerHTML=`<span class="wx-ic">${wxIcon(wmoToKind(code))}</span>`
+      +`<span class="wx-now">${cur}°</span>`
+      +`<span class="wx-hl"><span class="hi">↑${hi}°</span><span class="lo">↓${lo}°</span></span>`;
+    _wxLast=Date.now();
+  }catch(e){
+    console.warn("weather fetch failed:",e);
+    // 取得できなければ何も出さない（枠は :empty で消える）
   }
 }
 async function hardReload(){
@@ -1597,7 +1678,6 @@ function renderToday(){
     <div class="today-head simple">
       <div class="title">
         <div class="td-big">TODAY'S FOCUS</div>
-        <div class="sub">残り ${openCount} 件 · ステップ ${doneSteps}/${steps.length} 完了</div>
       </div>
     </div>
     ${listHTML}
@@ -1908,7 +1988,7 @@ function renderMetrics(){
   cc.innerHTML=counterHTML;
 }
 function metric(lab,val,suf,cls=""){return `<div class="metric glass ${cls}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div></div>`}
-function metricClickable(lab,val,suf,cls,onclick,extra=""){return `<div class="metric glass clickable ${cls}" onclick="${onclick}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div>${extra}<div class="metric-hint">タップで内訳 ›</div></div>`}
+function metricClickable(lab,val,suf,cls,onclick,extra=""){return `<div class="metric glass clickable ${cls}" onclick="${onclick}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div>${extra}</div>`}
 
 // ====== カウンター操作 ======
 function addCounter(){
@@ -2088,6 +2168,10 @@ function updateClock(){const now=new Date();
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 setInterval(updateClock,1000);
+
+// 天気：起動時に取得＋1時間ごとに更新（同期ボタンでも更新）
+loadWeather();
+setInterval(()=>loadWeather(true), 60*60*1000);
 
 // ======================================================================
 // ====== VIEW SWITCH (Tasks / Calendar) ======
