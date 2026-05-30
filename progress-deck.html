@@ -425,7 +425,7 @@
   /* ===== 全完了の中央演出 ===== */
   .fx-complete{position:fixed;inset:0;z-index:130;display:flex;align-items:center;justify-content:center;
     pointer-events:none;background:radial-gradient(circle at center,rgba(224,145,63,.14),rgba(0,0,0,.55) 70%);
-    animation:fxcBg .25s ease-out;opacity:1;transition:opacity .45s ease}
+    animation:fxcBg .25s ease-out;opacity:1;transition:opacity .3s ease}
   .fx-complete.out{opacity:0}
   @keyframes fxcBg{from{opacity:0}to{opacity:1}}
   .fxc-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
@@ -1260,14 +1260,10 @@ function applyCelebration(){
   }
   const increased = _prevAchieveToday!==null && now>_prevAchieveToday;
   _prevAchieveToday=now;
-  // 完了したタスク行を一瞬強調＋チェック位置で炎バースト
+  // 完了したタスク行を一瞬強調（炎バーストは完了時に元の位置で先に出すのでここでは出さない）
   if(_celebrateItemId){
     const item=document.querySelector(`[data-cel="${_celebrateItemId}"]`);
-    if(item){
-      item.classList.add("just-done"); setTimeout(()=>item.classList.remove("just-done"),500);
-      const box=item.querySelector(".box");
-      if(box) flameBurst(box);
-    }
+    if(item){ item.classList.add("just-done"); setTimeout(()=>item.classList.remove("just-done"),500); }
     _celebrateItemId=null;
   }
   // 必須タスクを全完了した瞬間だけ、中央に TASK COMPLETE
@@ -1277,6 +1273,16 @@ function applyCelebration(){
     setTimeout(taskCompleteOverlay, 350);
   }
   _prevAllDone = allDone;
+}
+// 完了時：今ある位置（並べ替え前）で炎を出してから、少し待って再描画（=下へ格下げ）する
+function completeRerender(celId){
+  const row=document.querySelector(`[data-cel="${celId}"]`);
+  if(row){
+    row.classList.add("on");        // 即座にチェック済みの見た目に（0.3秒の遅延中の無反応を防ぐ）
+    const box=row.querySelector(".box");
+    if(box) flameBurst(box);        // 元の位置で炎
+  }
+  setTimeout(render, 300);          // 約0.3秒後に並べ替え
 }
 // ふっくり可愛い二層の炎SVG（Windows絵文字風）。全端末で同一に表示するため絵文字ではなくSVGで描く。
 let _flameSeq=0;
@@ -1333,8 +1339,8 @@ function taskCompleteOverlay(){
       <div class="fxc-text">TASK COMPLETE</div>
     </div>`;
   document.body.appendChild(ov);
-  setTimeout(()=>{ ov.classList.add("out"); }, 1100);
-  setTimeout(()=>ov.remove(), 1600);
+  setTimeout(()=>{ ov.classList.add("out"); }, 850);
+  setTimeout(()=>ov.remove(), 1180);
 }
 // 数字をfrom→toへ短時間でカウントアップ
 function countUp(el,from,to){
@@ -1608,12 +1614,13 @@ function toggleAdhoc(id){
     bumpAchieve(a.t);
     _celebrateItemId="ad-"+a.id;
     if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=(c.count||0)+1;}
+    completeRerender("ad-"+a.id);   // 元の位置で炎→0.3秒後に並べ替え
   }else{
     // 取り消し：達成-1・ログ削除・カウンター-1
     unbumpAchieve(a.t);
     if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=Math.max(0,(c.count||0)-1);}
+    render();
   }
-  render();
 }
 // カレンダー予定タスクの完了トグル（その日ごとに保持）
 function toggleEventTask(eid){
@@ -1625,12 +1632,13 @@ function toggleEventTask(eid){
   if(idx>=0){
     arr.splice(idx,1);                       // 取り消し
     if(ev) unbumpAchieve(ev.title);
+    render();
   }else{
     arr.push(eid);                           // 完了
     if(ev) bumpAchieve(ev.title);
     _celebrateItemId="ev-"+eid;
+    completeRerender("ev-"+eid);             // 元の位置で炎→0.3秒後に並べ替え
   }
-  render();
 }
 // カウンターから今日やることへ追加（紐付きタスク）
 function addCounterTask(counterId){
@@ -1657,7 +1665,15 @@ function toggleStepActive(cid,gid,i){
 // toggle a step's done-state from the Today panel (mirrors the project step)
 function toggleStepFromToday(cid,gid,i){
   const[,g]=findG(cid,gid);
-  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);_celebrateItemId="st-"+cid+"-"+gid+"-"+i;}else{unbumpAchieve(g.checks[i].t);}render();}
+  if(g&&g.checks[i]){
+    const was=g.checks[i].on; g.checks[i].on=!was;
+    if(!was){
+      g.checks[i].active=false; bumpAchieve(g.checks[i].t); _celebrateItemId="st-"+cid+"-"+gid+"-"+i;
+      completeRerender("st-"+cid+"-"+gid+"-"+i);   // 元の位置で炎→0.3秒後に並べ替え
+    }else{
+      unbumpAchieve(g.checks[i].t); render();
+    }
+  }
 }
 // toggle the "today" star flag on a step
 function toggleToday(cid,gid,i){
