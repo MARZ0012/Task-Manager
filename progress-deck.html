@@ -207,7 +207,7 @@
   .clock b{color:var(--ink-2);font-weight:400}
 
   /* ============ metrics ============ */
-  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:28px}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:14px}
   .metric{padding:18px 18px 16px;position:relative;overflow:hidden}
   .metric .lab{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
   .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink)}
@@ -314,6 +314,8 @@
   .cat-head .count{font-size:10.5px;color:var(--ink-4);letter-spacing:.16em;font-family:"Roboto Mono",monospace}
   .cat-head .del{font-size:10.5px;color:var(--ink-4);cursor:pointer;letter-spacing:.14em;text-transform:uppercase}
   .cat-head .del:hover{color:var(--cal-high)}
+  /* header "+ 目標" — desktop uses the big NEW GOAL card instead, so hide this here */
+  .cat-head .add-goal-h{display:none}
 
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
 
@@ -366,7 +368,7 @@
   .add-check:hover{color:var(--spec-amber)}
 
   /* ============ TODAY panel ============ */
-  .today{padding:32px;margin-bottom:56px}
+  .today{padding:32px;margin-bottom:16px}
   .today-head{display:flex;align-items:center;gap:30px;flex-wrap:wrap;margin-bottom:26px}
   .today-head .ring-big{position:relative;width:120px;height:120px;flex:0 0 auto}
   .today-head .ring-big svg{transform:rotate(-90deg)}
@@ -749,6 +751,11 @@
     .cat-tally{gap:10px;font-size:10px}
     .tally{font-size:10px}
     .cat-head .count,.cat-head .del{font-size:10px}
+    /* mobile: move "add goal" into the header so it doesn't push the next project down */
+    .cat-head .add-goal-h{display:inline;font-size:10px;color:var(--spec-amber);cursor:pointer;
+      letter-spacing:.1em;border:1px solid rgba(224,145,63,.35);border-radius:7px;padding:3px 9px;white-space:nowrap}
+    .cat-head .add-goal-h:active{background:rgba(224,145,63,.12)}
+    .cards .add-goal{display:none}
 
     .cards{grid-template-columns:1fr;gap:14px}
     .card{padding:20px}
@@ -822,7 +829,6 @@
   <!-- ============ TASKS VIEW ============ -->
   <div id="view-tasks">
     <!-- TODAY -->
-    <div class="sec-title">Today</div>
     <div class="today glass" id="today"></div>
 
     <!-- STATS -->
@@ -1447,6 +1453,7 @@ function catHTML(c,index,total){
       <div class="cat-prog"><div class="cp-bar"><i style="width:${cprog}%"></i></div><span class="cp-num">${cprog}%</span></div>
       <div class="cat-tally">${tally}</div>
       <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
+      <span class="add-goal-h" onclick="addGoal('${c.id}')">+ 目標</span>
       <span class="del" onclick="delCat('${c.id}')">DELETE</span>
     </div>
     <div class="cards" data-cat="${c.id}">
@@ -1591,7 +1598,6 @@ function renderMetrics(){
     </div>`).join("");
   counterHTML=`
     <div class="counters-wrap">
-      <div class="counters-head">COUNTERS</div>
       <div class="counters-grid">
         ${chips}
         <div class="counter-add" onclick="addCounter()">＋ 新しいカウンター</div>
