@@ -520,6 +520,19 @@
   .modal input:focus{outline:none;border-color:var(--line-2)}
   .modal .row{display:flex;gap:10px;justify-content:flex-end}
 
+  /* ---- day detail popup ---- */
+  .dm-empty{font-size:13px;color:var(--ink-3);line-height:1.6;padding:6px 2px 4px;letter-spacing:.02em}
+  .dm-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:11px;
+    background:var(--panel);padding:13px 14px;margin-bottom:10px;cursor:pointer;transition:.16s var(--ease)}
+  .dm-item:hover{border-color:var(--line-2);background:rgba(255,255,255,.025)}
+  .dm-when{font-family:"Roboto Mono",monospace;font-size:11px;color:var(--spec-amber);letter-spacing:.04em;flex:0 0 auto;min-width:42px;padding-top:1px}
+  .dm-item.memo .dm-when{color:var(--cal-low)}
+  .dm-body{flex:1;min-width:0}
+  .dm-title{font-size:14px;color:var(--ink);font-weight:300;letter-spacing:.02em;word-break:break-word}
+  .dm-memo{font-size:12px;color:var(--ink-3);margin-top:4px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .dm-tags{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .dm-tag{font-size:9.5px;letter-spacing:.1em;color:var(--ink-4);text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+
   /* ---- per-task difficulty toggle (inside card) ---- */
   .cal-row{display:flex;align-items:center;gap:11px;margin-top:16px}
   .cal-lab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-4);font-weight:400}
@@ -816,6 +829,17 @@
     <div class="row" style="margin-top:18px">
       <button class="btn" onclick="closeEvent()">CANCEL</button>
       <button class="btn solid" onclick="saveEvent()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="dayModal">
+  <div class="modal glass">
+    <h4 id="dayModalTitle">DAY</h4>
+    <div id="dayModalBody"></div>
+    <div class="row" style="margin-top:18px;justify-content:space-between">
+      <button class="btn" onclick="closeDay()">閉じる</button>
+      <button class="btn solid" id="dayAddBtn">+ この日に追加</button>
     </div>
   </div>
 </div>
@@ -1647,14 +1671,14 @@ function renderCalendar(){
     // events: show title (as before)
     let evHTML=events.map(e=>{
       const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
-      return `<div class="cal-ev" onclick="event.stopPropagation();openEvent('${e.id}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
+      return `<div class="cal-ev" onclick="event.stopPropagation();openDay('${key}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
     }).join("");
     // memos: marks only, no text (private). click to open detail.
     const memoMarks=memos.map(e=>
-      `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openEvent('${e.id}')">◍</span>`
+      `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openDay('${key}')">◍</span>`
     ).join("");
     const dateRow=`<div class="cal-date-row"><span class="cal-date">${day}</span>${memoMarks?`<span class="memo-marks">${memoMarks}</span>`:""}</div>`;
-    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''}" onclick="openEvent(null,'${key}')">
+    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''}" onclick="openDay('${key}')">
       ${dateRow}${evHTML}</div>`;
   }
   // pad the last row so every row has 7 cells (keeps column widths stable)
@@ -1663,6 +1687,41 @@ function renderCalendar(){
   for(let i=0;i<trailing;i++)cells+=`<div class="cal-cell blank"></div>`;
   el.innerHTML=`<div class="cal-dow-row">${dows}</div><div class="cal-grid">${cells}</div>`;
 }
+
+// ====== DAY DETAIL POPUP ======
+function openDay(key){
+  const modal=document.getElementById("dayModal");
+  const titleEl=document.getElementById("dayModalTitle");
+  const body=document.getElementById("dayModalBody");
+  const d=new Date(key+"T00:00:00");
+  const todayK=dateKey(new Date());
+  const relTxt = key===todayK?" · 今日":"";
+  titleEl.textContent=`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${DOW[d.getDay()]}）${relTxt}`;
+
+  const all=eventsOn(key);
+  if(all.length===0){
+    body.innerHTML=`<div class="dm-empty">この日の予定・記録はまだありません。<br>下の「＋ この日に追加」から登録できます。</div>`;
+  }else{
+    body.innerHTML=all.map(e=>{
+      const isMemo=e.kind==="memo";
+      const when=isMemo?"記録":(e.time||"終日");
+      const rep=(e.repeat&&e.repeat!=="none")?`<span class="dm-tag">↻ 繰り返し</span>`:"";
+      const off=(!isMemo&&e.inToday===false)?`<span class="dm-tag">今日やること外</span>`:"";
+      const memoHTML=e.memo?`<div class="dm-memo">${esc(e.memo)}</div>`:"";
+      const tags=(rep||off)?`<div class="dm-tags">${rep}${off}</div>`:"";
+      return `<div class="dm-item ${isMemo?'memo':''}" onclick="closeDay();openEvent('${e.id}')">
+        <span class="dm-when">${when}</span>
+        <div class="dm-body">
+          <div class="dm-title">${esc(e.title)}</div>
+          ${memoHTML}${tags}
+        </div>
+      </div>`;
+    }).join("");
+  }
+  document.getElementById("dayAddBtn").onclick=()=>{ closeDay(); openEvent(null,key); };
+  modal.classList.add("show");
+}
+function closeDay(){document.getElementById("dayModal").classList.remove("show")}
 
 // ======================================================================
 // ====== UPCOMING EVENTS BANNER ======
@@ -1842,6 +1901,7 @@ function downloadICS(id){
 
 // close modals on backdrop click
 document.getElementById("eventModal").addEventListener("click",e=>{if(e.target.id==="eventModal")closeEvent()});
+document.getElementById("dayModal").addEventListener("click",e=>{if(e.target.id==="dayModal")closeDay()});
 
 // Firebaseのロードが間に合わなかった場合のフォールバック（タイムアウト3秒）
 setTimeout(()=>{
