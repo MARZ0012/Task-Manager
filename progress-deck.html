@@ -410,6 +410,11 @@
   .td-text .src{font-size:10.5px;letter-spacing:.06em;color:var(--ink-4);font-family:"Roboto Mono",monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .td-item .star{cursor:pointer;font-size:14px;color:var(--spec-amber);flex:0 0 auto;transition:.18s}
   .td-item .star:hover{filter:brightness(1.3)}
+  .td-item .flag{flex:0 0 auto;cursor:pointer;font-size:9.5px;letter-spacing:.08em;padding:3px 8px;border-radius:20px;
+    font-family:"Roboto Mono",monospace;border:1px solid transparent;transition:.16s var(--ease);user-select:none;white-space:nowrap}
+  .td-item .flag.must{color:var(--spec-amber);border-color:rgba(224,145,63,.4);background:rgba(224,145,63,.1)}
+  .td-item .flag.opt{color:var(--ink-4);border-color:var(--line-2);background:transparent}
+  .td-item .flag:hover{filter:brightness(1.2)}
   .today-empty{padding:30px 8px;text-align:center;color:var(--ink-3);font-size:13px;font-weight:300;line-height:1.9;letter-spacing:.03em}
   .today-empty .star-ex{color:var(--spec-amber)}
 
@@ -719,7 +724,7 @@
     .upcoming{flex-direction:column;margin-bottom:26px}
     .up-label{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;min-width:0;width:100%;border-right:none;border-bottom:1px solid var(--line);padding:14px 18px}
     .up-label .ic{font-size:18px}
-    .up-label .up-big{font-size:16px;letter-spacing:.18em}
+    .up-label .up-big{font-size:16px;letter-spacing:.18em;font-weight:500}
     .up-item{min-width:150px;padding:14px 16px}
 
     .metrics{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
@@ -745,7 +750,7 @@
     .today-head{gap:18px;margin-bottom:20px}
     .today-head .ring-big,.today-head .ring-big svg{width:92px;height:92px}
     .today-head .title h2{font-size:21px}
-    .today-head.simple .td-big{font-size:16px;letter-spacing:.18em}
+    .today-head.simple .td-big{font-size:16px;letter-spacing:.18em;font-weight:500}
     .today-list{grid-template-columns:1fr;gap:8px}
 
     .toolbar{gap:10px}
@@ -1056,6 +1061,7 @@ function migrate(d){
   if(!d.routine.achieve)d.routine.achieve={};
   if(!d.routine.achieveLog)d.routine.achieveLog={};
   if(!d.routine.eventDone)d.routine.eventDone={};
+  if(!d.routine.eventOpt)d.routine.eventOpt={};
   if(!Array.isArray(d.routine.counters)) d.routine.counters = d.routine.counters ? Object.values(d.routine.counters) : [];
   if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
   pruneAchieveLog(d);   // 直近1週間より古い達成名ログを削除
@@ -1160,6 +1166,9 @@ function rolloverIfNeeded(){
     if(data.routine.eventDone){
       Object.keys(data.routine.eventDone).forEach(k=>{ if(k<today) delete data.routine.eventDone[k]; });
     }
+    if(data.routine.eventOpt){
+      Object.keys(data.routine.eventOpt).forEach(k=>{ if(k<today) delete data.routine.eventOpt[k]; });
+    }
   }
   // ensure today's log entry exists
   if(!data.routine.log[today])data.routine.log[today]={};
@@ -1253,21 +1262,25 @@ function weekStartKey(dayKey){
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 // 今日やること（プロジェクトの「今日やる」ステップ＋単発タスク＋当日のカレンダー予定）の
-// 完了数 / 総数。renderToday と同じ構成で数える。ステップを足せば total が増え、消せば減る。
+// 完了数 / 総数。ただし「任意（リマインダー）」フラグの付いたものは母数に入れない。
+//   ステップ : ch.opt===true なら任意
+//   単発     : a.opt===true なら任意
+//   予定     : data.routine.eventOpt[todayK] にIDがあれば任意（既定はマスト）
 function todayProgress(){
   const todayK=dateKey(new Date());
   let done=0,total=0;
   // プロジェクトの「今日やる」ステップ
   (data.cats||[]).forEach(c=>(c.goals||[]).forEach(g=>(g.checks||[]).forEach(ch=>{
-    if(ch.today){ total++; if(ch.on) done++; }
+    if(ch.today && !ch.opt){ total++; if(ch.on) done++; }
   })));
   // 単発タスク
-  (data.routine.adhoc||[]).forEach(a=>{ total++; if(a.on) done++; });
+  (data.routine.adhoc||[]).forEach(a=>{ if(!a.opt){ total++; if(a.on) done++; } });
   // 当日のカレンダー予定
   const doneToday=(data.routine.eventDone&&data.routine.eventDone[todayK])||[];
+  const optToday=(data.routine.eventOpt&&data.routine.eventOpt[todayK])||[];
   (data.events||[]).forEach(e=>{
     if((e.kind||"event")==="event" && e.inToday!==false && occursOn(e,todayK)){
-      total++; if(doneToday.includes(e.id)) done++;
+      if(!optToday.includes(e.id)){ total++; if(doneToday.includes(e.id)) done++; }
     }
   });
   return {done,total};
@@ -1376,15 +1389,18 @@ function renderToday(){
   // リスト本体
   let listItems="";
   // カレンダー予定（時刻順・各予定が個別タスク）
+  const optTodayArr=(data.routine.eventOpt&&data.routine.eventOpt[todayK])||[];
   evTasks.forEach(x=>{
     const e=x.e;
     const when = e.time||"終日";
+    const isOpt=optTodayArr.includes(e.id);
     listItems+=`<div class="td-item ${x.on?'on':''}" data-cel="ev-${e.id}">
       <div class="box" onclick="toggleEventTask('${e.id}')"></div>
       <div class="td-text">
         <span class="t">${esc(e.title)}</span>
         <span class="src">📅 予定 · ${when}</span>
       </div>
+      <span class="flag ${isOpt?'opt':'must'}" title="${isOpt?'任意（母数に入れない）':'必須（母数に入れる）'}" onclick="event.stopPropagation();toggleEventOpt('${e.id}')">${isOpt?'任意':'必須'}</span>
       <span class="x" title="カレンダーで開く" onclick="setView('calendar');openEvent('${e.id}')">↗</span>
     </div>`;
   });
@@ -1400,6 +1416,7 @@ function renderToday(){
         <span class="t" ${x.a.on?'':'contenteditable'} spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
         <span class="src">${isCounter?'📊 ':''}${srcLabel}</span>
       </div>
+      <span class="flag ${x.a.opt?'opt':'must'}" title="${x.a.opt?'任意（母数に入れない）':'必須（母数に入れる）'}" onclick="event.stopPropagation();toggleAdhocOpt('${x.a.id}')">${x.a.opt?'任意':'必須'}</span>
       ${x.a.on?'':`<span class="play ${x.a.active?'on':''}" title="着手中にする" onclick="toggleAdhocActive('${x.a.id}')">▸</span>`}
       <span class="x" title="削除" onclick="delAdhoc('${x.a.id}')">✕</span>
     </div>`;
@@ -1414,6 +1431,7 @@ function renderToday(){
         <span class="t">${esc(x.ch.t)}</span>
         <span class="src">${esc(x.cat)} · ${esc(x.goal)}${x.ch.active?' · 着手中':''}</span>
       </div>
+      <span class="flag ${x.ch.opt?'opt':'must'}" title="${x.ch.opt?'任意（母数に入れない）':'必須（母数に入れる）'}" onclick="event.stopPropagation();toggleStepOpt('${x.cid}','${x.gid}',${x.idx})">${x.ch.opt?'任意':'必須'}</span>
       ${x.ch.on?'':`<span class="play ${x.ch.active?'on':''}" title="着手中にする" onclick="toggleStepActive('${x.cid}','${x.gid}',${x.idx})">▸</span>`}
       <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
     </div>`;
@@ -1513,6 +1531,23 @@ function toggleStepFromToday(cid,gid,i){
 function toggleToday(cid,gid,i){
   const[,g]=findG(cid,gid);
   if(g&&g.checks[i]){g.checks[i].today=!g.checks[i].today;render();}
+}
+// ====== 必須 / 任意 フラグ（任意は X/Y の母数に入れない） ======
+function toggleStepOpt(cid,gid,i){
+  const[,g]=findG(cid,gid);
+  if(g&&g.checks[i]){ g.checks[i].opt=!g.checks[i].opt; render(); }
+}
+function toggleAdhocOpt(id){
+  const a=data.routine.adhoc.find(x=>x.id===id); if(!a)return;
+  a.opt=!a.opt; render();
+}
+function toggleEventOpt(eid){
+  const todayK=dateKey(new Date());
+  if(!data.routine.eventOpt) data.routine.eventOpt={};
+  const arr = data.routine.eventOpt[todayK] || (data.routine.eventOpt[todayK]=[]);
+  const idx = arr.indexOf(eid);
+  if(idx>=0) arr.splice(idx,1); else arr.push(eid);
+  render();
 }
 
 // ====== BOARD ======
