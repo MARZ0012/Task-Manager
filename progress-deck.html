@@ -218,7 +218,7 @@
   .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:14px}
   .metric{padding:18px 18px 16px;position:relative;overflow:hidden}
   .metric .lab{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
-  .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink)}
+  .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink);display:inline-block;transform-origin:left center;will-change:transform}
   .metric .val small{font-size:13px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
   .metric.accent .val{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));-webkit-background-clip:text;background-clip:text;color:transparent}
   .metric .spark{display:none}
@@ -390,16 +390,65 @@
   .today-list{display:flex;flex-direction:column;gap:10px}
   .td-item{display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease);min-width:0;overflow:hidden}
   .td-item.on{background:rgba(224,145,63,.07);border-color:rgba(224,145,63,.28)}
-  .td-item.just-done{animation:tdPop .42s var(--ease)}
+  .td-item.just-done{animation:tdPop .5s var(--ease)}
   @keyframes tdPop{
     0%{transform:scale(1)}
-    30%{transform:scale(1.022);background:rgba(224,145,63,.16);border-color:rgba(224,145,63,.5)}
+    30%{transform:scale(1.03);background:rgba(224,145,63,.2);border-color:rgba(224,145,63,.6);box-shadow:0 0 22px rgba(224,145,63,.18)}
     100%{transform:scale(1)}
   }
   .td-item.just-done .box{animation:boxPop .42s var(--ease)}
   @keyframes boxPop{0%{transform:scale(.6)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
-  .metric .val.bump{animation:valBump .45s var(--ease)}
-  @keyframes valBump{0%{transform:scale(1)}35%{transform:scale(1.18);filter:brightness(1.25)}100%{transform:scale(1)}}
+  .metric .val.bump{animation:valBump .5s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes valBump{
+    0%{transform:scale(1);text-shadow:none}
+    30%{transform:scale(1.32);color:var(--spec-amber);text-shadow:0 0 18px rgba(224,145,63,.55)}
+    60%{transform:scale(.96)}
+    100%{transform:scale(1);text-shadow:none}
+  }
+  /* ===== 完了時のポップな炎バースト（チェック位置） ===== */
+  .fx-burst{position:fixed;z-index:120;pointer-events:none;transform:translate(-50%,-50%)}
+  .fx-flame{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0);font-size:26px;
+    animation:fxFlame .6s cubic-bezier(.3,1.5,.6,1) forwards;filter:drop-shadow(0 0 8px rgba(224,145,63,.6))}
+  @keyframes fxFlame{
+    0%{transform:translate(-50%,-50%) scale(0) rotate(-12deg);opacity:0}
+    35%{transform:translate(-50%,-60%) scale(1.25) rotate(6deg);opacity:1}
+    70%{transform:translate(-50%,-66%) scale(1) rotate(-3deg);opacity:1}
+    100%{transform:translate(-50%,-78%) scale(.6) rotate(0);opacity:0}
+  }
+  .fx-spark{position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;
+    transform:translate(-50%,-50%);opacity:0;animation:fxSpark .55s ease-out forwards;
+    box-shadow:0 0 6px currentColor}
+  @keyframes fxSpark{
+    0%{transform:translate(-50%,-50%) scale(.4);opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.3);opacity:0}
+  }
+  /* ===== 全完了の中央演出 ===== */
+  .fx-complete{position:fixed;inset:0;z-index:130;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;background:radial-gradient(circle at center,rgba(224,145,63,.14),rgba(0,0,0,.55) 70%);
+    animation:fxcBg .25s ease-out both;opacity:1;transition:opacity .35s ease}
+  .fx-complete.out{opacity:0}
+  @keyframes fxcBg{from{opacity:0}to{opacity:1}}
+  .fxc-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .fxc-flame{font-size:84px;transform:scale(0);animation:fxcFlame .65s cubic-bezier(.3,1.6,.5,1) forwards;
+    filter:drop-shadow(0 0 24px rgba(224,145,63,.75))}
+  @keyframes fxcFlame{
+    0%{transform:scale(0) rotate(-18deg);opacity:0}
+    40%{transform:scale(1.3) rotate(8deg);opacity:1}
+    70%{transform:scale(1) rotate(-4deg)}
+    100%{transform:scale(1.05) rotate(0);opacity:1}
+  }
+  .fxc-spark-ring{position:absolute;top:42px;left:50%;width:0;height:0}
+  .fxc-spark-ring span{position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;
+    transform:translate(-50%,-50%) scale(.3);opacity:0;box-shadow:0 0 10px currentColor;
+    animation:fxcSpark .7s ease-out forwards}
+  @keyframes fxcSpark{
+    0%{transform:translate(-50%,-50%) scale(.3);opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.4);opacity:0}
+  }
+  .fxc-text{font-size:26px;font-weight:600;letter-spacing:.28em;color:var(--ink);text-transform:uppercase;
+    text-shadow:0 0 20px rgba(224,145,63,.6);transform:translateY(10px);opacity:0;
+    animation:fxcText .5s ease-out .18s forwards}
+  @keyframes fxcText{to{transform:translateY(0);opacity:1}}
   .td-item .box{width:19px;height:19px;border-radius:6px;border:1.4px solid var(--line-2);flex:0 0 auto;cursor:pointer;position:relative;transition:.18s}
   .td-item .box:hover{border-color:var(--spec-amber)}
   .td-item.on .box{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent}
@@ -1187,6 +1236,7 @@ function rolloverIfNeeded(){
 // ====== RENDER ======
 let _prevAchieveToday=null;        // 前回描画時のTODAY達成数
 let _celebrateItemId=null;          // 直近に完了したタスクの要素ID（演出用）
+let _prevAllDone=null;              // 前回描画時に「必須タスク全完了」だったか
 function render(){
   renderToday();
   renderBoard();
@@ -1196,9 +1246,10 @@ function render(){
   save();updateClock();
   applyCelebration();
 }
-// 完了演出：今日やることの完了数が増えていればTODAYの数字をポップ＆カウントアップ、完了アイテムを軽く強調
+// 完了演出：TODAY数字のポップ、完了行の強調、チェック位置の炎バースト、全完了の中央演出
 function applyCelebration(){
-  const now=todayProgress().done;
+  const tp=todayProgress();
+  const now=tp.done;
   // TODAY数字のバンプ＋カウントアップ（増えたときだけ）
   if(_prevAchieveToday!==null && now>_prevAchieveToday){
     const valEl=document.querySelector(".metric.accent .val");
@@ -1207,13 +1258,65 @@ function applyCelebration(){
       valEl.classList.remove("bump"); void valEl.offsetWidth; valEl.classList.add("bump");
     }
   }
+  const increased = _prevAchieveToday!==null && now>_prevAchieveToday;
   _prevAchieveToday=now;
-  // 完了したタスク行を一瞬強調
+  // 完了したタスク行を一瞬強調＋チェック位置で炎バースト
   if(_celebrateItemId){
     const item=document.querySelector(`[data-cel="${_celebrateItemId}"]`);
-    if(item){ item.classList.add("just-done"); setTimeout(()=>item.classList.remove("just-done"),460); }
+    if(item){
+      item.classList.add("just-done"); setTimeout(()=>item.classList.remove("just-done"),500);
+      const box=item.querySelector(".box");
+      if(box) flameBurst(box);
+    }
     _celebrateItemId=null;
   }
+  // 必須タスクを全完了した瞬間だけ、中央に TASK COMPLETE
+  const allDone = tp.total>0 && tp.done>=tp.total;
+  if(allDone && _prevAllDone===false && increased){
+    taskCompleteOverlay();
+  }
+  _prevAllDone = allDone;
+}
+// チェック位置でポップな炎がポンッと弾けて、火花が数個飛び散る（ワンショット・~0.6s）
+function flameBurst(anchorEl){
+  const r=anchorEl.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const layer=document.createElement("div");
+  layer.className="fx-burst";
+  layer.style.left=cx+"px"; layer.style.top=cy+"px";
+  // 中央の炎玉
+  const core=document.createElement("div"); core.className="fx-flame"; core.textContent="🔥";
+  layer.appendChild(core);
+  // 飛び散る火花
+  const N=7;
+  for(let i=0;i<N;i++){
+    const s=document.createElement("div"); s.className="fx-spark";
+    const ang=(Math.PI*2*i/N)+(Math.random()*0.5-0.25);
+    const dist=22+Math.random()*16;
+    s.style.setProperty("--dx",Math.cos(ang)*dist+"px");
+    s.style.setProperty("--dy",Math.sin(ang)*dist+"px");
+    s.style.background = i%2 ? "var(--spec-amber)" : "#ffd56b";
+    layer.appendChild(s);
+  }
+  document.body.appendChild(layer);
+  setTimeout(()=>layer.remove(),700);
+}
+// 全完了の中央演出（炎の爆発＋TASK COMPLETE）。自動ですぐ消える。
+function taskCompleteOverlay(){
+  const ov=document.createElement("div");
+  ov.className="fx-complete";
+  ov.innerHTML=`
+    <div class="fxc-inner">
+      <div class="fxc-flame">🔥</div>
+      <div class="fxc-spark-ring">${Array.from({length:10}).map((_,i)=>{
+        const ang=Math.PI*2*i/10;
+        return `<span style="--dx:${Math.cos(ang)*70}px;--dy:${Math.sin(ang)*70}px;background:${i%2?'var(--spec-amber)':'#ffd56b'}"></span>`;
+      }).join("")}</div>
+      <div class="fxc-text">TASK COMPLETE</div>
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>{ ov.classList.add("out"); }, 1100);
+  setTimeout(()=>ov.remove(), 1500);
 }
 // 数字をfrom→toへ短時間でカウントアップ
 function countUp(el,from,to){
