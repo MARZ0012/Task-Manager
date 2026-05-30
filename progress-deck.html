@@ -52,6 +52,7 @@
   firebase.initializeApp(firebaseConfig);
   const _fbDb = firebase.database();
   const _fbRef = _fbDb.ref('progressDeck');
+  window._fbRef = _fbRef;
   const _fbAuth = firebase.auth();
 
   window.firebaseSave = function(data) {
@@ -205,6 +206,13 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   .clock{text-align:right;font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.14em;line-height:2.1;font-weight:300}
   .clock b{color:var(--ink-2);font-weight:400}
+  .clock-row{display:flex;align-items:center;gap:12px}
+  .sync-btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:50%;
+    width:34px;height:34px;flex:0 0 auto;font-size:16px;line-height:1;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;transition:.18s var(--ease);-webkit-tap-highlight-color:transparent}
+  .sync-btn:hover{border-color:var(--spec-amber);color:var(--ink)}
+  .sync-btn.spin{animation:syncspin .7s linear infinite;border-color:var(--spec-amber);color:var(--spec-amber)}
+  @keyframes syncspin{to{transform:rotate(360deg)}}
 
   /* ============ metrics ============ */
   .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:14px}
@@ -814,7 +822,10 @@
       <h1>Progress</h1>
     </div>
     <div class="head-right">
-      <div class="clock" id="clock">SYNCING…</div>
+      <div class="clock-row">
+        <div class="clock" id="clock">SYNCING…</div>
+        <button class="sync-btn" id="syncBtn" onclick="syncNow()" title="最新データに同期（長押しで強制リロード）">⟳</button>
+      </div>
       <div class="tabs">
         <button class="tab active" data-view="tasks" onclick="setView('tasks')">Tasks</button>
         <button class="tab" data-view="calendar" onclick="setView('calendar')">Calendar</button>
@@ -1062,6 +1073,71 @@ function saveNow(){
   if(window.firebaseSave) window.firebaseSave(data);
 }
 window.addEventListener("beforeunload",()=>{ if(_saveTimer) saveNow(); });
+
+// ======================================================================
+// ====== 同期 / リロードボタン ======
+//  タップ      → Firebaseから最新データを取り直して再描画（軽い）
+//  長押し/ダブルタップ → キャッシュを無視して完全リロード（コード更新を取り込む）
+// ======================================================================
+let _syncing=false;
+function syncNow(){
+  if(_syncing) return;
+  // 編集中の未保存分があれば先に書き込んでから取り直す（自分の編集を消さない）
+  if(_saveTimer) saveNow();
+  const btn=document.getElementById("syncBtn");
+  _syncing=true; if(btn) btn.classList.add("spin");
+  const clock=document.getElementById("clock");
+  if(!window._fbRef){ _finishSync(btn,clock,"オフライン"); return; }
+  try{
+    window._fbRef.once('value', (snap)=>{
+      const val=snap.val();
+      if(val && val.cats && val.routine){
+        data = migrate(val);
+        rolloverIfNeeded();
+        render();
+        _finishSync(btn,clock,"SYNCED");
+      }else{
+        _finishSync(btn,clock,"データなし");
+      }
+    }, (err)=>{ console.error("sync error:",err); _finishSync(btn,clock,"同期失敗"); });
+  }catch(e){ console.error(e); _finishSync(btn,clock,"同期失敗"); }
+}
+function _finishSync(btn,clock,msg){
+  _syncing=false;
+  if(btn) btn.classList.remove("spin");
+  if(clock){
+    const prev=clock.textContent;
+    clock.textContent=msg+" · "+new Date().toLocaleTimeString("ja-JP");
+  }
+}
+async function hardReload(){
+  // Service Worker / Cache API があれば消す（PWAの古いキャッシュ対策）
+  try{
+    if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+    if(navigator.serviceWorker){ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister())); }
+  }catch(e){ console.warn("cache clear failed",e); }
+  // クエリを付けてキャッシュを確実にバイパス
+  const u=new URL(location.href); u.searchParams.set("_r", Date.now());
+  location.replace(u.toString());
+}
+// 長押し（600ms）またはダブルタップで強制リロード
+(function(){
+  const btn=document.getElementById("syncBtn"); if(!btn) return;
+  let pressTimer=null, longFired=false, lastTap=0;
+  const startPress=()=>{ longFired=false; pressTimer=setTimeout(()=>{ longFired=true; hardReload(); }, 600); };
+  const cancelPress=()=>{ if(pressTimer){clearTimeout(pressTimer);pressTimer=null;} };
+  btn.addEventListener("touchstart",(e)=>{ startPress(); }, {passive:true});
+  btn.addEventListener("touchend",cancelPress);
+  btn.addEventListener("touchmove",cancelPress);
+  btn.addEventListener("mousedown",startPress);
+  btn.addEventListener("mouseup",cancelPress);
+  btn.addEventListener("mouseleave",cancelPress);
+  // ダブルクリックでも強制リロード（PC向け）
+  btn.addEventListener("dblclick",(e)=>{ e.preventDefault(); hardReload(); });
+  // onclick(syncNow)が長押し後に発火しないよう、長押し時はクリックを抑制
+  btn.addEventListener("click",(e)=>{ if(longFired){ e.preventDefault(); e.stopImmediatePropagation(); longFired=false; } }, true);
+})();
+
 
 // ---- rollover: if the routine day changed, commit yesterday's state to log
 function rolloverIfNeeded(){
