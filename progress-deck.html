@@ -425,7 +425,7 @@
   /* ===== 全完了の中央演出 ===== */
   .fx-complete{position:fixed;inset:0;z-index:130;display:flex;align-items:center;justify-content:center;
     pointer-events:none;background:radial-gradient(circle at center,rgba(224,145,63,.14),rgba(0,0,0,.55) 70%);
-    animation:fxcBg .25s ease-out both;opacity:1;transition:opacity .35s ease}
+    animation:fxcBg .25s ease-out;opacity:1;transition:opacity .45s ease}
   .fx-complete.out{opacity:0}
   @keyframes fxcBg{from{opacity:0}to{opacity:1}}
   .fxc-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
@@ -1271,11 +1271,29 @@ function applyCelebration(){
     _celebrateItemId=null;
   }
   // 必須タスクを全完了した瞬間だけ、中央に TASK COMPLETE
+  // チェック位置の炎バーストから少し遅らせて（被せ気味）出す
   const allDone = tp.total>0 && tp.done>=tp.total;
   if(allDone && _prevAllDone===false && increased){
-    taskCompleteOverlay();
+    setTimeout(taskCompleteOverlay, 350);
   }
   _prevAllDone = allDone;
+}
+// ふっくり可愛い二層の炎SVG（Windows絵文字風）。全端末で同一に表示するため絵文字ではなくSVGで描く。
+let _flameSeq=0;
+function flameSVG(size){
+  const id=++_flameSeq;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="fO${id}" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop offset="0%" stop-color="#ffb43a"/><stop offset="38%" stop-color="#ff7a24"/><stop offset="100%" stop-color="#e8391f"/>
+      </linearGradient>
+      <radialGradient id="fI${id}" cx="50%" cy="74%" r="58%">
+        <stop offset="0%" stop-color="#fff6cf"/><stop offset="50%" stop-color="#ffd84e"/><stop offset="100%" stop-color="#ff9f2c"/>
+      </radialGradient>
+    </defs>
+    <path fill="url(#fO${id})" d="M54 9 C 54 24 41 30 38 41 C 36 48 38 53 42 56 C 38 56 34 53 32 48 C 26 55 22 64 22 71 C 22 86 35 94 50 94 C 65 94 78 85 78 70 C 78 55 69 45 61 36 C 55 29 50 21 54 9 Z"/>
+    <path fill="url(#fI${id})" d="M53 50 C 56 57 62 62 62 71 C 62 80 57 86 50 86 C 43 86 38 80 38 72 C 38 65 42 60 47 56 C 48 60 50 62 51 62 C 52 58 52 54 53 50 Z"/>
+  </svg>`;
 }
 // チェック位置でポップな炎がポンッと弾けて、火花が数個飛び散る（ワンショット・~0.6s）
 function flameBurst(anchorEl){
@@ -1284,8 +1302,8 @@ function flameBurst(anchorEl){
   const layer=document.createElement("div");
   layer.className="fx-burst";
   layer.style.left=cx+"px"; layer.style.top=cy+"px";
-  // 中央の炎玉
-  const core=document.createElement("div"); core.className="fx-flame"; core.textContent="🔥";
+  // 中央の炎玉（SVG）
+  const core=document.createElement("div"); core.className="fx-flame"; core.innerHTML=flameSVG(30);
   layer.appendChild(core);
   // 飛び散る火花
   const N=7;
@@ -1301,13 +1319,13 @@ function flameBurst(anchorEl){
   document.body.appendChild(layer);
   setTimeout(()=>layer.remove(),700);
 }
-// 全完了の中央演出（炎の爆発＋TASK COMPLETE）。自動ですぐ消える。
+// 全完了の中央演出（炎の爆発＋TASK COMPLETE）。自動でフェードアウト。
 function taskCompleteOverlay(){
   const ov=document.createElement("div");
   ov.className="fx-complete";
   ov.innerHTML=`
     <div class="fxc-inner">
-      <div class="fxc-flame">🔥</div>
+      <div class="fxc-flame">${flameSVG(88)}</div>
       <div class="fxc-spark-ring">${Array.from({length:10}).map((_,i)=>{
         const ang=Math.PI*2*i/10;
         return `<span style="--dx:${Math.cos(ang)*70}px;--dy:${Math.sin(ang)*70}px;background:${i%2?'var(--spec-amber)':'#ffd56b'}"></span>`;
@@ -1316,7 +1334,7 @@ function taskCompleteOverlay(){
     </div>`;
   document.body.appendChild(ov);
   setTimeout(()=>{ ov.classList.add("out"); }, 1100);
-  setTimeout(()=>ov.remove(), 1500);
+  setTimeout(()=>ov.remove(), 1600);
 }
 // 数字をfrom→toへ短時間でカウントアップ
 function countUp(el,from,to){
