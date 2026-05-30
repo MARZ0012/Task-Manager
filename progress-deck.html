@@ -463,9 +463,9 @@
   /* ---- streak badge & weekly mini bars ---- */
   .streak-badge{margin-top:9px;display:inline-flex;align-items:center;font-size:11px;letter-spacing:.04em;color:var(--spec-amber);
     background:rgba(224,145,63,.12);border:1px solid rgba(224,145,63,.3);border-radius:20px;padding:3px 10px;font-weight:400}
-  .wk-bars{display:grid;grid-template-columns:repeat(7,1fr);align-items:end;gap:5px;margin-top:11px;height:46px}
-  .wk-bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;min-width:0}
-  .wk-bar .bar-track{flex:1;display:flex;align-items:flex-end;justify-content:center;width:100%;min-height:0}
+  .wk-bars{display:grid;grid-template-columns:repeat(7,1fr);align-items:end;gap:5px;margin-top:11px}
+  .wk-bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
+  .wk-bar .bar-track{height:46px;display:flex;align-items:flex-end;justify-content:center;width:100%}
   .wk-bar span{display:block;width:60%;max-width:12px;border-radius:3px;background:var(--line-2);transition:height .4s var(--ease),background .2s;height:4px}
   .wk-bar.has span{background:linear-gradient(180deg,var(--spec-amber),var(--spec-red))}
   .wk-bar.today span{box-shadow:0 0 8px 1px rgba(224,145,63,.4)}
