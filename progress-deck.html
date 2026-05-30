@@ -218,7 +218,7 @@
   .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:14px}
   .metric{padding:18px 18px 16px;position:relative;overflow:hidden}
   .metric .lab{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
-  .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink);display:inline-block;transform-origin:left center;will-change:transform}
+  .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink);display:inline-block;transform-origin:left center;will-change:transform;vertical-align:middle}
   .metric .val small{font-size:13px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
   .metric.accent .val{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));-webkit-background-clip:text;background-clip:text;color:transparent}
   .metric .spark{display:none}
@@ -481,7 +481,7 @@
   .td-ev .te-title{font-size:13.5px;color:var(--ink-2);letter-spacing:.02em}
 
   /* 単発タスク入力欄 */
-  .td-add{display:flex;gap:9px;margin-bottom:16px}
+  .td-add{display:flex;gap:9px;margin-top:10px;margin-bottom:16px}
   .td-add-in{flex:1;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:11px;color:var(--ink);
     padding:12px 15px;font-size:13.5px;font-family:inherit;font-weight:300;letter-spacing:.02em}
   .td-add-in:focus{outline:none;border-color:var(--line-2)}
@@ -525,9 +525,9 @@
   .metric .metric-hint{font-size:8.5px;letter-spacing:.12em;color:var(--ink-4);margin-top:8px;text-transform:uppercase}
 
   /* ---- streak badge & weekly mini bars ---- */
-  .streak-badge{margin-top:9px;margin-left:14px;display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.04em;color:var(--spec-amber);
-    background:rgba(224,145,63,.12);border:1px solid rgba(224,145,63,.3);border-radius:20px;padding:3px 10px;font-weight:400;vertical-align:middle}
-  .streak-badge .fx-mini{display:inline-flex;width:13px;height:13px}
+  .streak-badge{margin-top:0;margin-left:14px;position:relative;top:3px;display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.04em;color:var(--spec-amber);
+    background:rgba(224,145,63,.12);border:1px solid rgba(224,145,63,.3);border-radius:20px;padding:3px 12px 3px 10px;font-weight:400;vertical-align:middle}
+  .streak-badge .fx-mini{display:inline-flex;width:13px;height:13px;flex:0 0 auto}
   .streak-badge .fx-mini svg{width:100%;height:100%;display:block}
   .wk-bars{display:grid;grid-template-columns:repeat(7,1fr);align-items:stretch;gap:5px;margin-top:11px}
   .wk-bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
@@ -673,7 +673,7 @@
   .tab.active{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#1a0d06;font-weight:500}
 
   /* ============ upcoming events banner ============ */
-  .upcoming{display:flex;align-items:stretch;gap:0;margin-bottom:28px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(16px);overflow:hidden}
+  .upcoming{display:flex;align-items:stretch;gap:0;margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(16px);overflow:hidden}
   .up-label{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:16px 26px;border-right:1px solid var(--line);min-width:172px}
   .up-label .k{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
   .up-label .ic{font-size:21px;font-weight:100;color:var(--ink);letter-spacing:.04em}
@@ -780,7 +780,7 @@
     .tabs{flex:0 0 auto}
     .tab{padding:8px 16px;font-size:10px}
 
-    .upcoming{flex-direction:column;margin-bottom:26px}
+    .upcoming{flex-direction:column;margin-bottom:13px}
     .up-label{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;min-width:0;width:100%;border-right:none;border-bottom:1px solid var(--line);padding:14px 18px}
     .up-label .ic{font-size:18px}
     .up-label .up-big{font-size:16px;letter-spacing:.18em;font-weight:500}
@@ -811,6 +811,7 @@
     .today-head .title h2{font-size:21px}
     .today-head.simple .td-big{font-size:16px;letter-spacing:.18em;font-weight:500}
     .today-list{grid-template-columns:1fr;gap:8px}
+    .td-add{margin-top:8px}
 
     .toolbar{gap:10px}
     .controls{width:100%}
