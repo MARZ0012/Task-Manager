@@ -210,12 +210,6 @@
   .clock{text-align:right;font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.14em;line-height:2.1;font-weight:300}
   .clock b{color:var(--ink-2);font-weight:400}
   .clock-row{display:flex;align-items:center;gap:12px}
-  /* 株価ティッカー：右寄せ＋全体を50%に縮小。
-     内側を広め(960px)に取って5銘柄が切れないようにし、scaleで半分に。
-     縮小後の余白を出さないため、wrapの高さを縮小後に合わせ overflow:hidden で切り取る。 */
-  .ticker-wrap{margin:0 0 14px auto;width:480px;max-width:100%;height:34px;overflow:hidden}
-  .ticker-scale{width:960px;transform:scale(.5);transform-origin:top right}
-  .ticker-wrap .tradingview-widget-container{min-height:0}
   .weather{display:flex;align-items:center;gap:7px;font-family:"Roboto Mono",monospace;color:var(--ink-2);white-space:nowrap}
   .weather:empty{display:none}
   .weather .wx-ic{width:26px;height:26px;flex:0 0 auto;display:inline-flex}
@@ -928,15 +922,6 @@
       </div>
     </div>
   </header>
-
-  <!-- ============ 株価ティッカー（TradingView 公開ウィジェット・ログイン/キー不要） ============ -->
-  <div class="ticker-wrap">
-    <div class="ticker-scale">
-      <div class="tradingview-widget-container" id="tvTicker">
-        <div class="tradingview-widget-container__widget"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- UPCOMING EVENTS — always visible banner -->
   <div class="upcoming" id="upcoming"></div>
@@ -2201,33 +2186,6 @@ setInterval(updateClock,1000);
 // 天気：起動時に取得＋1時間ごとに更新（同期ボタンでも更新）
 loadWeather();
 setInterval(()=>loadWeather(true), 60*60*1000);
-
-// ===== 株価ティッカー（TradingView 公開ウィジェット）=====
-// ログイン/APIキー不要。流れない「tickers」ウィジェットで5銘柄を固定の横並び表示。
-function initTicker(){
-  const host=document.querySelector("#tvTicker .tradingview-widget-container__widget");
-  if(!host) return;
-  host.innerHTML="";
-  const s=document.createElement("script");
-  s.type="text/javascript";
-  s.async=true;
-  s.src="https://s3.tradingview.com/external-embedding/embed-widget-tickers.js";
-  s.innerHTML=JSON.stringify({
-    symbols:[
-      {proName:"TVC:NI225",       title:"日経平均"},
-      {proName:"FX:USDJPY",       title:"ドル円"},
-      {proName:"TVC:GOLD",        title:"ゴールド"},
-      {proName:"NYMEX:CL1!",      title:"WTI原油"},
-      {proName:"BINANCE:BTCUSDT", title:"BTC"}
-    ],
-    isTransparent:true,
-    showSymbolLogo:true,
-    colorTheme:"dark",
-    locale:"ja"
-  });
-  document.querySelector("#tvTicker").appendChild(s);
-}
-initTicker();
 
 // ======================================================================
 // ====== VIEW SWITCH (Tasks / Calendar) ======
