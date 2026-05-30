@@ -9,6 +9,30 @@
 <link rel="apple-touch-icon" sizes="512x512" href="apple-touch-icon-512.png">
 <link rel="icon" type="image/png" href="apple-touch-icon-512.png">
 <meta name="apple-mobile-web-app-title" content="Progress">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#070707">
+<script>
+  // インライン Web App Manifest（単一HTMLのままインストール可能にする）
+  (function(){
+    const manifest={
+      name:"Progress Deck", short_name:"Progress",
+      start_url:".", display:"standalone",
+      background_color:"#070707", theme_color:"#070707",
+      icons:[
+        {src:"apple-touch-icon-512.png", sizes:"512x512", type:"image/png"},
+        {src:"apple-touch-icon.png", sizes:"180x180", type:"image/png"}
+      ]
+    };
+    try{
+      const blob=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
+      const link=document.createElement("link");
+      link.rel="manifest"; link.href=URL.createObjectURL(blob);
+      document.head.appendChild(link);
+    }catch(e){}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500&family=Noto+Sans+JP:wght@200;300;400;500&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
@@ -356,6 +380,16 @@
   .today-list{display:flex;flex-direction:column;gap:10px}
   .td-item{display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease);min-width:0;overflow:hidden}
   .td-item.on{background:rgba(224,145,63,.07);border-color:rgba(224,145,63,.28)}
+  .td-item.just-done{animation:tdPop .42s var(--ease)}
+  @keyframes tdPop{
+    0%{transform:scale(1)}
+    30%{transform:scale(1.022);background:rgba(224,145,63,.16);border-color:rgba(224,145,63,.5)}
+    100%{transform:scale(1)}
+  }
+  .td-item.just-done .box{animation:boxPop .42s var(--ease)}
+  @keyframes boxPop{0%{transform:scale(.6)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
+  .metric .val.bump{animation:valBump .45s var(--ease)}
+  @keyframes valBump{0%{transform:scale(1)}35%{transform:scale(1.18);filter:brightness(1.25)}100%{transform:scale(1)}}
   .td-item .box{width:19px;height:19px;border-radius:6px;border:1.4px solid var(--line-2);flex:0 0 auto;cursor:pointer;position:relative;transition:.18s}
   .td-item .box:hover{border-color:var(--spec-amber)}
   .td-item.on .box{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent}
@@ -425,6 +459,17 @@
   .metric.clickable{cursor:pointer;transition:.2s var(--ease)}
   .metric.clickable:hover{border-color:var(--line-2);background:var(--panel-2)}
   .metric .metric-hint{font-size:8.5px;letter-spacing:.12em;color:var(--ink-4);margin-top:8px;text-transform:uppercase}
+
+  /* ---- streak badge & weekly mini bars ---- */
+  .streak-badge{margin-top:9px;display:inline-flex;align-items:center;font-size:11px;letter-spacing:.04em;color:var(--spec-amber);
+    background:rgba(224,145,63,.12);border:1px solid rgba(224,145,63,.3);border-radius:20px;padding:3px 10px;font-weight:400}
+  .wk-bars{display:flex;align-items:flex-end;gap:4px;margin-top:11px;height:40px}
+  .wk-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%}
+  .wk-bar span{width:100%;max-width:14px;border-radius:3px;background:var(--line-2);transition:height .4s var(--ease),background .2s;min-height:4px}
+  .wk-bar.has span{background:linear-gradient(180deg,var(--spec-amber),var(--spec-red))}
+  .wk-bar.today span{box-shadow:0 0 8px 1px rgba(224,145,63,.4)}
+  .wk-bar b{font-size:8px;font-weight:400;color:var(--ink-4);letter-spacing:0}
+  .wk-bar.today b{color:var(--spec-amber)}
 
   /* カウンター群 */
   .counters-wrap{margin-bottom:30px}
@@ -666,6 +711,8 @@
     .metric .lab{font-size:8.5px;letter-spacing:.16em}
     .metric .val{font-size:27px;margin-top:7px}
     .metric .val small{font-size:11px}
+    .wk-bars{height:32px;gap:3px;margin-top:9px}
+    .streak-badge{font-size:10px;padding:2px 8px;margin-top:7px}
 
     .counters-grid{grid-template-columns:repeat(auto-fill,minmax(108px,132px));gap:10px;justify-content:start}
     .counter-chip{padding:13px 13px 11px;gap:7px}
@@ -767,6 +814,7 @@
     <div class="toolbar">
       <div class="sec-title" style="margin:0">Goals — 仕事 / 私生活</div>
       <div class="controls">
+        <button class="btn" id="notifyBtn" onclick="enableNotifications()">🔔 通知を有効化</button>
         <button class="btn" onclick="openCat()">+ カテゴリ追加</button>
         <button class="btn" onclick="exportData()">⬇ バックアップ</button>
         <button class="btn" onclick="document.getElementById('imp').click()">⬆ 復元</button>
@@ -976,9 +1024,21 @@ function migrate(d){
   return d;
 }
 function uid(){return Math.random().toString(36).slice(2,9)}
+let _saveTimer=null;
 function save(){
+  // 連続編集での書き込みを抑えるため300msデバウンス
+  if(_saveTimer)clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(()=>{
+    _saveTimer=null;
+    if(window.firebaseSave) window.firebaseSave(data);
+  },300);
+}
+// 即時保存が必要な場面用（タブを閉じる直前など）
+function saveNow(){
+  if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
   if(window.firebaseSave) window.firebaseSave(data);
 }
+window.addEventListener("beforeunload",()=>{ if(_saveTimer) saveNow(); });
 
 // ---- rollover: if the routine day changed, commit yesterday's state to log
 function rolloverIfNeeded(){
@@ -1004,6 +1064,8 @@ function rolloverIfNeeded(){
 }
 
 // ====== RENDER ======
+let _prevAchieveToday=null;        // 前回描画時のTODAY達成数
+let _celebrateItemId=null;          // 直近に完了したタスクの要素ID（演出用）
 function render(){
   renderToday();
   renderBoard();
@@ -1011,6 +1073,40 @@ function render(){
   renderUpcoming();
   renderCalendar();
   save();updateClock();
+  applyCelebration();
+}
+// 完了演出：達成数が増えていればTODAYの数字をポップ＆カウントアップ、完了アイテムを軽く強調
+function applyCelebration(){
+  const now=achieveStats().today;
+  // TODAY数字のバンプ＋カウントアップ（増えたときだけ）
+  if(_prevAchieveToday!==null && now>_prevAchieveToday){
+    const valEl=document.querySelector(".metric.accent .val");
+    if(valEl){
+      countUp(valEl,_prevAchieveToday,now);
+      valEl.classList.remove("bump"); void valEl.offsetWidth; valEl.classList.add("bump");
+    }
+  }
+  _prevAchieveToday=now;
+  // 完了したタスク行を一瞬強調
+  if(_celebrateItemId){
+    const item=document.querySelector(`[data-cel="${_celebrateItemId}"]`);
+    if(item){ item.classList.add("just-done"); setTimeout(()=>item.classList.remove("just-done"),460); }
+    _celebrateItemId=null;
+  }
+}
+// 数字をfrom→toへ短時間でカウントアップ
+function countUp(el,from,to){
+  const dur=420, t0=performance.now();
+  // <small>サフィックスは保持
+  const small=el.querySelector("small"); const sufHTML=small?small.outerHTML:"";
+  function step(t){
+    const p=Math.min(1,(t-t0)/dur);
+    const ease=1-Math.pow(1-p,3);
+    const v=Math.round(from+(to-from)*ease);
+    el.innerHTML=v+sufHTML;
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 function todayLog(){const k=data.routine.currentDay;if(!data.routine.log[k])data.routine.log[k]={};return data.routine.log[k]}
@@ -1065,6 +1161,34 @@ function achieveStats(){
     if(weekStartKey(k)===wk)week+=n;
   }
   return {total,today,week};
+}
+// 連続達成日数：今日(または昨日)から遡って「1件以上達成した日」が何日続いているか。
+// 今日まだ0件でも、昨日までの連続が途切れていなければその日数を返す（今日やればそのまま伸びる）。
+function streakDays(){
+  const ach=data.routine.achieve||{};
+  const has=k=>(ach[k]||0)>0;
+  const d=new Date(routineDayKey()+"T00:00:00");
+  // 起点：今日が0件なら昨日から数える
+  if(!has(routineDayKey())) d.setDate(d.getDate()-1);
+  let count=0;
+  while(true){
+    const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    if(has(k)){count++;d.setDate(d.getDate()-1);}else break;
+  }
+  return count;
+}
+// 今週(月曜始まり)の曜日別達成数 [月,火,水,木,金,土,日]
+function weekByDay(){
+  const ach=data.routine.achieve||{};
+  const wk=weekStartKey(routineDayKey());
+  const base=new Date(wk+"T00:00:00");
+  const out=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(base); d.setDate(base.getDate()+i);
+    const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    out.push(ach[k]||0);
+  }
+  return out;
 }
 // 今日 / 今週 完了したタスク名の一覧（achieveLogから。1週間保持なので両方取れる）
 function achieveNames(scope){
@@ -1132,7 +1256,7 @@ function renderToday(){
   evTasks.forEach(x=>{
     const e=x.e;
     const when = e.time||"終日";
-    listItems+=`<div class="td-item ${x.on?'on':''}">
+    listItems+=`<div class="td-item ${x.on?'on':''}" data-cel="ev-${e.id}">
       <div class="box" onclick="toggleEventTask('${e.id}')"></div>
       <div class="td-text">
         <span class="t">${esc(e.title)}</span>
@@ -1147,7 +1271,7 @@ function renderToday(){
     const active=x.a.active?'active':'';
     const isCounter=!!x.a.counterId;
     const srcLabel = isCounter ? `カウンター${x.a.active?' · 着手中':''}` : `単発タスク${x.a.active?' · 着手中':''}`;
-    listItems+=`<div class="td-item ${x.a.on?'on':''} ${active}">
+    listItems+=`<div class="td-item ${x.a.on?'on':''} ${active}" data-cel="ad-${x.a.id}">
       <div class="box" onclick="toggleAdhoc('${x.a.id}')"></div>
       <div class="td-text">
         <span class="t" ${x.a.on?'':'contenteditable'} spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
@@ -1161,7 +1285,7 @@ function renderToday(){
   const sortedSteps=[...steps].sort((a,b)=>(a.ch.on?1:0)-(b.ch.on?1:0));
   sortedSteps.forEach(x=>{
     const active=x.ch.active?'active':'';
-    listItems+=`<div class="td-item ${x.ch.on?'on':''} ${active}">
+    listItems+=`<div class="td-item ${x.ch.on?'on':''} ${active}" data-cel="st-${x.cid}-${x.gid}-${x.idx}">
       <div class="box" onclick="toggleStepFromToday('${x.cid}','${x.gid}',${x.idx})"></div>
       <div class="td-text">
         <span class="t">${esc(x.ch.t)}</span>
@@ -1209,6 +1333,7 @@ function toggleAdhoc(id){
     // 完了：着手中解除・達成+1・名前ログ記録・カウンター連動
     a.active=false;
     bumpAchieve(a.t);
+    _celebrateItemId="ad-"+a.id;
     if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=(c.count||0)+1;}
   }else{
     // 取り消し：達成-1・ログ削除・カウンター-1
@@ -1230,6 +1355,7 @@ function toggleEventTask(eid){
   }else{
     arr.push(eid);                           // 完了
     if(ev) bumpAchieve(ev.title);
+    _celebrateItemId="ev-"+eid;
   }
   render();
 }
@@ -1239,7 +1365,7 @@ function addCounterTask(counterId){
   data.routine.adhoc.push({id:uid(),t:c.name,on:false,active:false,counterId:counterId});
   render();
 }
-function editAdhoc(id,t){const a=data.routine.adhoc.find(x=>x.id===id);if(a){a.t=t;save();}}
+function editAdhoc(id,t){const a=data.routine.adhoc.find(x=>x.id===id);if(a&&!a.on){a.t=t;save();}}
 function delAdhoc(id){data.routine.adhoc=data.routine.adhoc.filter(x=>x.id!==id);render();}
 function toggleAdhocActive(id){
   const a=data.routine.adhoc.find(x=>x.id===id); if(!a)return;
@@ -1258,7 +1384,7 @@ function toggleStepActive(cid,gid,i){
 // toggle a step's done-state from the Today panel (mirrors the project step)
 function toggleStepFromToday(cid,gid,i){
   const[,g]=findG(cid,gid);
-  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}else{unbumpAchieve(g.checks[i].t);}render();}
+  if(g&&g.checks[i]){const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);_celebrateItemId="st-"+cid+"-"+gid+"-"+i;}else{unbumpAchieve(g.checks[i].t);}render();}
 }
 // toggle the "today" star flag on a step
 function toggleToday(cid,gid,i){
@@ -1411,10 +1537,25 @@ function renderMetrics(){
   data.cats.forEach(c=>c.goals.forEach(g=>(g.checks||[]).forEach(ch=>{stepTotal++;if(ch.on)stepDone++;})));
   // 達成カウント（今日 / 今週）
   const ach=achieveStats();
+  const streak=streakDays();
+  const wbd=weekByDay();
+  const wkMax=Math.max(1,...wbd);
+  const todayDow=(new Date(routineDayKey()+"T00:00:00").getDay()+6)%7; // 月=0..日=6
+  const DOW_MINI=["月","火","水","木","金","土","日"];
+  // 今日メトリクス：ストリークがあればバッジを添える
+  const streakBadge = streak>0
+    ? `<div class="streak-badge" title="連続達成日数">🔥 ${streak}日連続</div>`
+    : "";
+  // 今週メトリクス：曜日別ミニバー
+  const weekBars = `<div class="wk-bars">`+wbd.map((n,i)=>{
+    const h=Math.round((n/wkMax)*100);
+    const cls=(i===todayDow?'today':'')+(n>0?' has':'');
+    return `<div class="wk-bar ${cls}" title="${DOW_MINI[i]}: ${n}件"><span style="height:${n>0?Math.max(14,h):4}%"></span><b>${DOW_MINI[i]}</b></div>`;
+  }).join("")+`</div>`;
   // 上段メトリクス（TODAY/THIS WEEK はクリックで完了内容パネル）
   const top=
-    metricClickable("TODAY · 今日の達成",ach.today,"","accent","showAchievePanel('today')")+
-    metricClickable("THIS WEEK · 今週",ach.week,"","","showAchievePanel('week')")+
+    metricClickable("TODAY · 今日の達成",ach.today,"","accent","showAchievePanel('today')",streakBadge)+
+    metricClickable("THIS WEEK · 今週",ach.week,"","","showAchievePanel('week')",weekBars)+
     metric("STEPS · 達成/総数",stepDone,"/"+stepTotal)+
     metric("PROJECTS · 抱えている数",projects,"");
   // カウンター群
@@ -1448,7 +1589,7 @@ function renderMetrics(){
   cc.innerHTML=counterHTML;
 }
 function metric(lab,val,suf,cls=""){return `<div class="metric glass ${cls}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div></div>`}
-function metricClickable(lab,val,suf,cls,onclick){return `<div class="metric glass clickable ${cls}" onclick="${onclick}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div><div class="metric-hint">タップで内訳 ›</div></div>`}
+function metricClickable(lab,val,suf,cls,onclick,extra=""){return `<div class="metric glass clickable ${cls}" onclick="${onclick}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div>${extra}<div class="metric-hint">タップで内訳 ›</div></div>`}
 
 // ====== カウンター操作 ======
 function addCounter(){
@@ -1952,6 +2093,52 @@ function downloadICS(id){
   a.download=(e.title.replace(/[^\w\u3040-\u30ff\u4e00-\u9faf]/g,"_")||"event")+".ics";
   a.click();
 }
+
+// ======================================================================
+// ====== 通知 / リマインド（アプリを開いている間に予定30分前に通知） ======
+// ======================================================================
+function refreshNotifyBtn(){
+  const btn=document.getElementById("notifyBtn"); if(!btn)return;
+  if(!("Notification" in window)){ btn.style.display="none"; return; }
+  if(Notification.permission==="granted"){ btn.textContent="🔔 通知ON"; btn.disabled=true; btn.style.opacity=".6"; }
+  else if(Notification.permission==="denied"){ btn.textContent="🔕 通知ブロック中"; btn.disabled=true; btn.style.opacity=".6"; }
+  else { btn.textContent="🔔 通知を有効化"; btn.disabled=false; btn.style.opacity="1"; }
+}
+function enableNotifications(){
+  if(!("Notification" in window)){ alert("このブラウザは通知に対応していません。"); return; }
+  Notification.requestPermission().then(p=>{
+    refreshNotifyBtn();
+    if(p==="granted"){
+      try{ new Notification("Progress Deck", {body:"通知を有効にしました。予定の30分前にお知らせします。"}); }catch(e){}
+    }
+  });
+}
+// 既に通知した予定×時刻の記録（重複通知を防ぐ。当日内のメモリのみ）
+const _notified=new Set();
+function checkReminders(){
+  if(!("Notification" in window) || Notification.permission!=="granted") return;
+  if(typeof data==="undefined" || !data || !data.events) return;
+  const now=new Date();
+  const todayK=dateKey(now);
+  data.events.forEach(e=>{
+    if((e.kind||"event")!=="event") return;
+    if(!e.time) return;                       // 終日予定は対象外
+    if(!occursOn(e,todayK)) return;
+    const [h,mi]=e.time.split(":").map(Number);
+    const evTime=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,mi);
+    const lead=new Date(evTime.getTime()-30*60*1000);   // 30分前
+    // リード時刻を過ぎていて、まだ予定時刻前で、未通知なら鳴らす
+    const key=todayK+"|"+e.id+"|"+e.time;
+    if(now>=lead && now<evTime && !_notified.has(key)){
+      _notified.add(key);
+      try{
+        new Notification("まもなく予定", {body:`${e.time}　${e.title}`, tag:key});
+      }catch(err){}
+    }
+  });
+}
+setInterval(checkReminders, 60*1000);   // 1分ごとにチェック
+refreshNotifyBtn();
 
 // close modals on backdrop click
 document.getElementById("eventModal").addEventListener("click",e=>{if(e.target.id==="eventModal")closeEvent()});
