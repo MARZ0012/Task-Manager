@@ -1244,13 +1244,11 @@ function wmoToKind(code){
   if(code>=95) return 'storm';                 // 雷雨
   return 'cloud';
 }
-let _wxLast=0;
-async function loadWeather(force){
-  // 直近10分以内に取得済みなら再取得しない（負荷軽減）
-  if(!force && Date.now()-_wxLast < 10*60*1000 && document.getElementById('weather').innerHTML) return;
+let _wxLast=0, _wxCoords=null;
+// 実際に座標を渡して取得・描画
+async function fetchWeatherAt(lat, lon){
   const el=document.getElementById('weather'); if(!el) return;
-  // 東京
-  const url="https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917"
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
     +"&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min"
     +"&timezone=Asia%2FTokyo&forecast_days=1";
   try{
@@ -1268,6 +1266,22 @@ async function loadWeather(force){
   }catch(e){
     console.warn("weather fetch failed:",e);
     // 取得できなければ何も出さない（枠は :empty で消える）
+  }
+}
+async function loadWeather(force){
+  // 直近10分以内に取得済みなら再取得しない（負荷軽減）
+  if(!force && Date.now()-_wxLast < 10*60*1000 && document.getElementById('weather').innerHTML) return;
+  const TOKYO=[35.6895,139.6917];   // 取得できないときのフォールバック
+  // すでに現在地を取得済みならそれを使う（毎回ダイアログを出さない）
+  if(_wxCoords){ return fetchWeatherAt(_wxCoords[0], _wxCoords[1]); }
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      (pos)=>{ _wxCoords=[pos.coords.latitude, pos.coords.longitude]; fetchWeatherAt(_wxCoords[0], _wxCoords[1]); },
+      (err)=>{ console.warn("geolocation denied/failed:",err); fetchWeatherAt(TOKYO[0], TOKYO[1]); },  // 拒否・失敗時は東京
+      { enableHighAccuracy:false, timeout:8000, maximumAge:30*60*1000 }
+    );
+  }else{
+    fetchWeatherAt(TOKYO[0], TOKYO[1]);
   }
 }
 async function hardReload(){
