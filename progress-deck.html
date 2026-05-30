@@ -719,6 +719,7 @@
     .upcoming{flex-direction:column;margin-bottom:26px}
     .up-label{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;min-width:0;width:100%;border-right:none;border-bottom:1px solid var(--line);padding:14px 18px}
     .up-label .ic{font-size:18px}
+    .up-label .up-big{font-size:16px;letter-spacing:.18em}
     .up-item{min-width:150px;padding:14px 16px}
 
     .metrics{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
@@ -744,6 +745,7 @@
     .today-head{gap:18px;margin-bottom:20px}
     .today-head .ring-big,.today-head .ring-big svg{width:92px;height:92px}
     .today-head .title h2{font-size:21px}
+    .today-head.simple .td-big{font-size:16px;letter-spacing:.18em}
     .today-list{grid-template-columns:1fr;gap:8px}
 
     .toolbar{gap:10px}
@@ -791,6 +793,8 @@
 
     .modal{padding:24px 20px}
     .type-toggle .ty-btn{font-size:11px;padding:10px 6px}
+    /* iOS zooms the viewport when focusing an input under 16px — keep these at 16px to prevent it */
+    .modal input,.modal select,.modal textarea{font-size:16px}
   }
 
   @media (max-width:380px){
@@ -1174,9 +1178,9 @@ function render(){
   save();updateClock();
   applyCelebration();
 }
-// 完了演出：達成数が増えていればTODAYの数字をポップ＆カウントアップ、完了アイテムを軽く強調
+// 完了演出：今日やることの完了数が増えていればTODAYの数字をポップ＆カウントアップ、完了アイテムを軽く強調
 function applyCelebration(){
-  const now=achieveStats().today;
+  const now=todayProgress().done;
   // TODAY数字のバンプ＋カウントアップ（増えたときだけ）
   if(_prevAchieveToday!==null && now>_prevAchieveToday){
     const valEl=document.querySelector(".metric.accent .val");
@@ -1247,6 +1251,26 @@ function weekStartKey(dayKey){
   const dow=(d.getDay()+6)%7; // 月=0..日=6
   d.setDate(d.getDate()-dow);
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+// 今日やること（プロジェクトの「今日やる」ステップ＋単発タスク＋当日のカレンダー予定）の
+// 完了数 / 総数。renderToday と同じ構成で数える。ステップを足せば total が増え、消せば減る。
+function todayProgress(){
+  const todayK=dateKey(new Date());
+  let done=0,total=0;
+  // プロジェクトの「今日やる」ステップ
+  (data.cats||[]).forEach(c=>(c.goals||[]).forEach(g=>(g.checks||[]).forEach(ch=>{
+    if(ch.today){ total++; if(ch.on) done++; }
+  })));
+  // 単発タスク
+  (data.routine.adhoc||[]).forEach(a=>{ total++; if(a.on) done++; });
+  // 当日のカレンダー予定
+  const doneToday=(data.routine.eventDone&&data.routine.eventDone[todayK])||[];
+  (data.events||[]).forEach(e=>{
+    if((e.kind||"event")==="event" && e.inToday!==false && occursOn(e,todayK)){
+      total++; if(doneToday.includes(e.id)) done++;
+    }
+  });
+  return {done,total};
 }
 function achieveStats(){
   const ach=data.routine.achieve||{};
@@ -1652,9 +1676,11 @@ function renderMetrics(){
     const barH = n>0?Math.max(20,h):0;
     return `<div class="wk-bar ${cls}" title="${DOW_MINI[i]}: ${n}件"><div class="bar-track"><span style="height:${barH?barH+'%':'4px'}"></span></div><b>${DOW_MINI[i]}</b></div>`;
   }).join("")+`</div>`;
+  // 今日メトリクス：今日やることの 完了数 / 総数（例 2/6）
+  const tp=todayProgress();
   // 上段メトリクス（TODAY/THIS WEEK はクリックで完了内容パネル）
   const top=
-    metricClickable("TODAY",ach.today,"","accent","showAchievePanel('today')",streakBadge)+
+    metricClickable("TODAY",tp.done,"/"+tp.total,"accent","showAchievePanel('today')",streakBadge)+
     metricClickable("THIS WEEK",ach.week,"","","showAchievePanel('week')",weekBars)+
     metric("STEPS",stepDone,"/"+stepTotal)+
     metric("PROJECTS",projects,"");
@@ -2144,7 +2170,13 @@ function openEvent(id=null, presetDate=null){
     modal.querySelector(".modal").appendChild(row);
   }
   modal.classList.add("show");
-  document.getElementById("evTitle").focus();
+  modal.querySelector(".modal").scrollTop = 0;   // always start at the top of the form
+  // Auto-focus the title only when the date is already decided (editing, or adding from a day cell).
+  // For a calendar-wide new add (no id, no preset date), DON'T focus — let the user start from the
+  // date selection at normal size instead of jumping/zooming into the title field.
+  if(id || presetDate){
+    document.getElementById("evTitle").focus();
+  }
 }
 function closeEvent(){document.getElementById("eventModal").classList.remove("show")}
 function saveEvent(){
