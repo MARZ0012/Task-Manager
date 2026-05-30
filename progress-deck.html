@@ -53,6 +53,7 @@
   const _fbDb = firebase.database();
   const _fbRef = _fbDb.ref('progressDeck');
   window._fbRef = _fbRef;
+  const _fbBackupRef = _fbDb.ref('progressDeckBackup');   // 自動バックアップ用（本体とは別キー）
   const _fbAuth = firebase.auth();
 
   window.firebaseSave = function(data) {
@@ -62,6 +63,24 @@
     }).catch(e => console.error("Firebase save error:", e));
   };
 
+  // 自動バックアップ：1日1回、起動時に当日のスナップショットを保存し、直近3日分だけ残す。
+  // 有効なデータのときだけ実行（空データで上書きしない）。誤上書き・破損からの巻き戻し用。
+  window.firebaseBackup = function(data) {
+    if(!data || !data.cats || !data.routine) return;   // 壊れた/空データは取らない
+    const d = new Date();
+    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    _fbBackupRef.once('value', (snap) => {
+      const all = snap.val() || {};
+      if(all[key]) return;                 // 今日の分が既にあれば何もしない（=1日1回）
+      const updates = {};
+      updates[key] = { savedAt: Date.now(), data: data };
+      // 直近3日だけ残す：今日を足した上で古いものを削除対象に
+      const keys = Object.keys(all).concat(key).sort();   // 日付昇順
+      while(keys.length > 3){ const old = keys.shift(); updates[old] = null; }
+      _fbBackupRef.update(updates).catch(e => console.error("backup error:", e));
+    }, (e)=>console.error("backup read error:", e));
+  };
+
   // 実際にデータを読み込む処理（ログイン成功後にだけ呼ぶ）
   function _loadFromFirebase() {
     _fbRef.once('value', (snapshot) => {
@@ -69,6 +88,7 @@
       const val = snapshot.val();
       if(val && val.cats && val.routine) {
         window._firebaseData = val;
+        if(window.firebaseBackup) window.firebaseBackup(val);   // 起動時の自動バックアップ（1日1回）
       } else {
         const local = localStorage.getItem("progressDeck.v2");
         if(local) {
