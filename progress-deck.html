@@ -137,6 +137,9 @@
 
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{min-height:100%}
+  /* 月によって行数（高さ）が変わってもページ幅が変わらないよう、縦スクロールバーの幅を常に確保する。
+     これでスクロールバーの有無による「全体が左右にずれる」現象を防ぐ。 */
+  html{scrollbar-gutter:stable;overflow-y:scroll}
   body{
     font-family:"Outfit","Noto Sans JP",system-ui,sans-serif;
     color:var(--ink);
@@ -720,6 +723,7 @@
   /* 前後の月の日付（薄く表示） */
   .cal-cell.spill{background:transparent;border-color:rgba(255,255,255,.04)}
   .cal-cell.spill .cal-date{color:var(--ink-4);opacity:.45}
+  .cal-cell.spill .cal-ev,.cal-cell.spill .cal-hol,.cal-cell.spill .memo-dot{opacity:.4}
   .cal-cell.spill:hover{background:rgba(255,255,255,.015);border-color:var(--line)}
   .cal-cell.today{border-color:var(--spec-amber);background:rgba(224,145,63,.06)}
   /* 祝日：日付を赤系に、右下に祝日名を小さく */
@@ -2198,43 +2202,45 @@ function renderCalendar(){
   let dows="";
   DOW_EN.forEach((d,i)=>{dows+=`<div class="cal-dow ${i===0?'sun':''}${i===6?'sat':''}">${d}</div>`});
   let cells="";
-  // 前月末の日付で先頭の空きを埋める（薄く表示・クリックでその日を開ける）
+  // 1マス分の中身（日付＋予定＋記録マーク＋祝日名）を組み立てる共通関数
+  function cellContent(key, dayNum){
+    const all=eventsOn(key);
+    const events=all.filter(e=>e.kind!=="memo");
+    const memos=all.filter(e=>e.kind==="memo");
+    const hol=holidayName(key);
+    const evHTML=events.map(e=>{
+      const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
+      return `<div class="cal-ev" onclick="event.stopPropagation();openDay('${key}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
+    }).join("");
+    const memoMarks=memos.map(e=>
+      `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openDay('${key}')">◍</span>`
+    ).join("");
+    const dateRow=`<div class="cal-date-row"><span class="cal-date">${dayNum}</span>${memoMarks?`<span class="memo-marks">${memoMarks}</span>`:""}</div>`;
+    const holHTML=hol?`<span class="cal-hol" title="${esc(hol)}">${esc(hol)}</span>`:"";
+    return dateRow+evHTML+holHTML;
+  }
+  // 前月末の日付で先頭の空きを埋める（薄く表示・予定も薄く出す・クリックでその日を開ける）
   if(startDow>0){
     const prevDays=new Date(y,m,0).getDate();   // 前月の日数
     for(let i=startDow-1;i>=0;i--){
       const dnum=prevDays-i;
       const pd=new Date(y,m-1,dnum), pkey=dateKey(pd);
-      cells+=`<div class="cal-cell spill" onclick="openDay('${pkey}')"><div class="cal-date-row"><span class="cal-date">${dnum}</span></div></div>`;
+      cells+=`<div class="cal-cell spill" onclick="openDay('${pkey}')">${cellContent(pkey,dnum)}</div>`;
     }
   }
   for(let day=1;day<=daysInMonth;day++){
     const d=new Date(y,m,day), key=dateKey(d);
-    const all=eventsOn(key);
-    const events=all.filter(e=>e.kind!=="memo");
-    const memos=all.filter(e=>e.kind==="memo");
     const isToday=key===todayKey;
     const isPast=key<todayKey;
     const hol=holidayName(key);
-    // events: show title (as before)
-    let evHTML=events.map(e=>{
-      const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
-      return `<div class="cal-ev" onclick="event.stopPropagation();openDay('${key}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
-    }).join("");
-    // memos: marks only, no text (private). click to open detail.
-    const memoMarks=memos.map(e=>
-      `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openDay('${key}')">◍</span>`
-    ).join("");
-    const dateRow=`<div class="cal-date-row"><span class="cal-date">${day}</span>${memoMarks?`<span class="memo-marks">${memoMarks}</span>`:""}</div>`;
-    const holHTML=hol?`<span class="cal-hol" title="${esc(hol)}">${esc(hol)}</span>`:"";
-    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${hol?'holiday':''}" onclick="openDay('${key}')">
-      ${dateRow}${evHTML}${holHTML}</div>`;
+    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${hol?'holiday':''}" onclick="openDay('${key}')">${cellContent(key,day)}</div>`;
   }
   // 末尾を翌月頭の日付で埋めて、各行7マスに揃える
   const totalCells=startDow+daysInMonth;
   const trailing=(7-(totalCells%7))%7;
   for(let i=1;i<=trailing;i++){
     const nd=new Date(y,m+1,i), nkey=dateKey(nd);
-    cells+=`<div class="cal-cell spill" onclick="openDay('${nkey}')"><div class="cal-date-row"><span class="cal-date">${i}</span></div></div>`;
+    cells+=`<div class="cal-cell spill" onclick="openDay('${nkey}')">${cellContent(nkey,i)}</div>`;
   }
   el.innerHTML=`<div class="cal-dow-row">${dows}</div><div class="cal-grid">${cells}</div>`;
 }
