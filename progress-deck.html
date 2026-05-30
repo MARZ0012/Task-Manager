@@ -183,11 +183,11 @@
   .clock b{color:var(--ink-2);font-weight:400}
 
   /* ============ metrics ============ */
-  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:18px;margin-bottom:30px}
-  .metric{padding:24px 24px 22px;position:relative;overflow:hidden}
-  .metric .lab{font-size:10.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
-  .metric .val{font-size:46px;font-weight:100;margin-top:14px;letter-spacing:.01em;line-height:1;color:var(--ink)}
-  .metric .val small{font-size:15px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:28px}
+  .metric{padding:18px 18px 16px;position:relative;overflow:hidden}
+  .metric .lab{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
+  .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink)}
+  .metric .val small{font-size:13px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
   .metric.accent .val{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));-webkit-background-clip:text;background-clip:text;color:transparent}
   .metric .spark{display:none}
 
@@ -424,27 +424,27 @@
   /* クリック可能メトリクス */
   .metric.clickable{cursor:pointer;transition:.2s var(--ease)}
   .metric.clickable:hover{border-color:var(--line-2);background:var(--panel-2)}
-  .metric .metric-hint{font-size:9px;letter-spacing:.12em;color:var(--ink-4);margin-top:10px;text-transform:uppercase}
+  .metric .metric-hint{font-size:8.5px;letter-spacing:.12em;color:var(--ink-4);margin-top:8px;text-transform:uppercase}
 
   /* カウンター群 */
   .counters-wrap{margin-bottom:30px}
   .counters-head{font-size:10.5px;letter-spacing:.42em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin:0 2px 16px;display:flex;align-items:center;gap:16px}
   .counters-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line-2),transparent)}
-  .counters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:14px}
-  .counter-chip{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:18px 18px 14px;
-    display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(14px)}
-  .cc-name{font-size:12px;letter-spacing:.06em;color:var(--ink-2);font-weight:300;outline:none;word-break:break-word}
+  .counters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,150px));gap:12px}
+  .counter-chip{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:14px 14px 12px;
+    display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(14px)}
+  .cc-name{font-size:11px;letter-spacing:.06em;color:var(--ink-2);font-weight:300;outline:none;word-break:break-word}
   .cc-name:focus{color:var(--ink)}
-  .cc-count{font-size:34px;font-weight:100;color:var(--ink);line-height:1;letter-spacing:.01em}
-  .cc-count small{font-size:13px;color:var(--ink-3);font-weight:300;margin-left:3px}
-  .cc-ctrl{display:flex;align-items:center;gap:7px;margin-top:2px}
-  .cc-btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:8px;
-    width:30px;height:28px;font-size:15px;font-family:inherit;cursor:pointer;transition:.16s;display:flex;align-items:center;justify-content:center;line-height:1}
+  .cc-count{font-size:28px;font-weight:100;color:var(--ink);line-height:1;letter-spacing:.01em}
+  .cc-count small{font-size:12px;color:var(--ink-3);font-weight:300;margin-left:3px}
+  .cc-ctrl{display:flex;align-items:center;gap:6px;margin-top:2px}
+  .cc-btn{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);border-radius:7px;
+    width:27px;height:25px;font-size:14px;font-family:inherit;cursor:pointer;transition:.16s;display:flex;align-items:center;justify-content:center;line-height:1}
   .cc-btn:hover{border-color:var(--spec-amber);color:var(--ink);background:rgba(224,145,63,.06)}
   .cc-del{margin-left:auto;color:var(--ink-4);cursor:pointer;font-size:11px;transition:.16s}
   .cc-del:hover{color:var(--cal-high)}
-  .counter-add{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line-2);border-radius:14px;
-    color:var(--ink-4);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:.22s var(--ease);min-height:104px}
+  .counter-add{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line-2);border-radius:13px;
+    color:var(--ink-4);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:.22s var(--ease);min-height:90px;text-align:center;padding:10px}
   .counter-add:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
 
   /* 達成内容パネル */
@@ -636,10 +636,15 @@
     .up-item{min-width:150px;padding:14px 16px}
 
     .metrics{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-    .metric{padding:15px 15px 14px}
-    .metric .lab{font-size:9px;letter-spacing:.18em}
-    .metric .val{font-size:30px;margin-top:8px}
-    .metric .val small{font-size:12px}
+    .metric{padding:14px 14px 13px}
+    .metric .lab{font-size:8.5px;letter-spacing:.16em}
+    .metric .val{font-size:27px;margin-top:7px}
+    .metric .val small{font-size:11px}
+
+    .counters-grid{grid-template-columns:1fr 1fr;gap:10px}
+    .counter-chip{padding:13px 13px 11px;gap:7px}
+    .cc-count{font-size:25px}
+    .counter-add{min-height:78px;grid-column:1 / -1}
     .diff-split{gap:10px;margin-top:10px}
     .diff-split .ds b{font-size:17px}
     .diff-split .ds{font-size:11px}
