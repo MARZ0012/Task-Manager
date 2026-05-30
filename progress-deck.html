@@ -468,9 +468,9 @@
   .wk-bar .bar-track{height:46px;display:flex;align-items:flex-end;justify-content:center;width:100%}
   .wk-bar span{display:block;width:60%;max-width:12px;border-radius:3px;background:var(--line-2);transition:height .4s var(--ease),background .2s;height:4px}
   .wk-bar.has span{background:linear-gradient(180deg,var(--spec-amber),var(--spec-red))}
-  .wk-bar.today span{box-shadow:0 0 8px 1px rgba(224,145,63,.4)}
+  .wk-bar.is-today span{box-shadow:0 0 8px 1px rgba(224,145,63,.4)}
   .wk-bar b{font-size:8px;font-weight:400;color:var(--ink-4);letter-spacing:0;line-height:1;flex:0 0 auto}
-  .wk-bar.today b{color:var(--spec-amber)}
+  .wk-bar.is-today b{color:var(--spec-amber)}
 
   /* カウンター群 */
   .counters-wrap{margin-bottom:30px}
@@ -649,7 +649,7 @@
   /* 祝日：日付を赤系に、右下に祝日名を小さく */
   .cal-cell.holiday .cal-date{color:var(--cal-high)}
   .cal-hol{position:absolute;right:6px;bottom:5px;max-width:calc(100% - 12px);font-size:9px;line-height:1.2;font-weight:400;
-    color:var(--spec-amber);letter-spacing:.02em;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:1;pointer-events:none}
+    color:var(--cal-high);letter-spacing:.02em;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:1;pointer-events:none}
   .cal-date{font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-2);font-weight:300}
   .cal-cell.today .cal-date{color:var(--spec-amber)}
   .cal-date-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
@@ -1554,7 +1554,7 @@ function renderMetrics(){
   // 今週メトリクス：曜日別ミニバー
   const weekBars = `<div class="wk-bars">`+wbd.map((n,i)=>{
     const h=Math.round((n/wkMax)*100);
-    const cls=(i===todayDow?'today':'')+(n>0?' has':'');
+    const cls=(i===todayDow?'is-today':'')+(n>0?' has':'');
     const barH = n>0?Math.max(20,h):0;
     return `<div class="wk-bar ${cls}" title="${DOW_MINI[i]}: ${n}件"><div class="bar-track"><span style="height:${barH?barH+'%':'4px'}"></span></div><b>${DOW_MINI[i]}</b></div>`;
   }).join("")+`</div>`;
