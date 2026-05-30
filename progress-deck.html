@@ -927,6 +927,10 @@ function rolloverIfNeeded(){
     if(Array.isArray(data.routine.adhoc)){
       data.routine.adhoc=data.routine.adhoc.filter(a=>!a.on);
     }
+    // 完了済みプロジェクトステップは「今日やる」から外す（未完了は繰り越し）
+    (data.cats||[]).forEach(c=>(c.goals||[]).forEach(g=>(g.checks||[]).forEach(ch=>{
+      if(ch.today && ch.on){ ch.today=false; ch.active=false; }
+    })));
     data.routine.currentDay=today;
     // 過去日のカレンダー予定の完了記録を掃除（当日分のみ保持）
     if(data.routine.eventDone){
@@ -1092,8 +1096,9 @@ function renderToday(){
       <span class="x" title="削除" onclick="delAdhoc('${x.a.id}')">✕</span>
     </div>`;
   });
-  // プロジェクトの今日ステップ
-  steps.forEach(x=>{
+  // プロジェクトの今日ステップ（未完了→上、完了→下に薄く）
+  const sortedSteps=[...steps].sort((a,b)=>(a.ch.on?1:0)-(b.ch.on?1:0));
+  sortedSteps.forEach(x=>{
     const active=x.ch.active?'active':'';
     listItems+=`<div class="td-item ${x.ch.on?'on':''} ${active}">
       <div class="box" onclick="toggleStepFromToday('${x.cid}','${x.gid}',${x.idx})"></div>
