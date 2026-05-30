@@ -210,6 +210,8 @@
   .clock{text-align:right;font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.14em;line-height:2.1;font-weight:300}
   .clock b{color:var(--ink-2);font-weight:400}
   .clock-row{display:flex;align-items:center;gap:12px}
+  .ticker-wrap{margin-bottom:18px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+  .ticker-wrap .tradingview-widget-container{min-height:46px}
   .weather{display:flex;align-items:center;gap:7px;font-family:"Roboto Mono",monospace;color:var(--ink-2);white-space:nowrap}
   .weather:empty{display:none}
   .weather .wx-ic{width:26px;height:26px;flex:0 0 auto;display:inline-flex}
@@ -922,6 +924,13 @@
       </div>
     </div>
   </header>
+
+  <!-- ============ 株価ティッカー（TradingView 公開ウィジェット・ログイン/キー不要） ============ -->
+  <div class="ticker-wrap">
+    <div class="tradingview-widget-container" id="tvTicker">
+      <div class="tradingview-widget-container__widget"></div>
+    </div>
+  </div>
 
   <!-- UPCOMING EVENTS — always visible banner -->
   <div class="upcoming" id="upcoming"></div>
@@ -2178,7 +2187,7 @@ function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileRe
 function updateClock(){const now=new Date();
   const t=now.toLocaleTimeString("ja-JP");
   const d=now.toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit",weekday:"short"});
-  document.getElementById("clock").innerHTML=`SYSTEM ONLINE · <b>${d}</b><br>${t}`}
+  document.getElementById("clock").innerHTML=`<b>${d}</b><br>${t}`}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 setInterval(updateClock,1000);
@@ -2186,6 +2195,34 @@ setInterval(updateClock,1000);
 // 天気：起動時に取得＋1時間ごとに更新（同期ボタンでも更新）
 loadWeather();
 setInterval(()=>loadWeather(true), 60*60*1000);
+
+// ===== 株価ティッカー（TradingView 公開ウィジェット）=====
+// ログイン/APIキー不要。公開スクリプトを読み込み、5銘柄をテープ表示。
+function initTicker(){
+  const host=document.querySelector("#tvTicker .tradingview-widget-container__widget");
+  if(!host) return;
+  host.innerHTML="";
+  const s=document.createElement("script");
+  s.type="text/javascript";
+  s.async=true;
+  s.src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+  s.innerHTML=JSON.stringify({
+    symbols:[
+      {proName:"TVC:NI225",     title:"日経平均"},
+      {proName:"FX:USDJPY",     title:"ドル円"},
+      {proName:"OANDA:XAUUSD",  title:"ゴールド"},
+      {proName:"TVC:USOIL",     title:"WTI原油"},
+      {proName:"BITSTAMP:BTCUSD",title:"BTC"}
+    ],
+    showSymbolLogo:true,
+    isTransparent:true,
+    displayMode:"compact",
+    colorTheme:"dark",
+    locale:"ja"
+  });
+  document.querySelector("#tvTicker").appendChild(s);
+}
+initTicker();
 
 // ======================================================================
 // ====== VIEW SWITCH (Tasks / Calendar) ======
