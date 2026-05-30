@@ -804,6 +804,10 @@
         <label style="margin-top:14px">繰り返しの終了（任意）</label>
         <input type="date" id="evRepeatEnd">
       </div>
+      <label class="ev-check" style="margin-top:16px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--ink-2);letter-spacing:.02em">
+        <input type="checkbox" id="evInToday" checked style="width:16px;height:16px;accent-color:var(--spec-amber);cursor:pointer">
+        該当日の「今日やること」に表示する
+      </label>
     </div>
 
     <label style="margin-top:14px" id="evMemoLab">メモ（任意）</label>
@@ -1029,7 +1033,7 @@ function renderToday(){
   // --- 今日の予定（event種別のみ・読み取り専用） ---
   const todayK=dateKey(new Date());
   const todayEvents=data.events
-    .filter(e=>(e.kind||"event")==="event" && occursOn(e,todayK))
+    .filter(e=>(e.kind||"event")==="event" && e.inToday!==false && occursOn(e,todayK))
     .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99"));
 
   // --- プロジェクトの「今日やる」ステップ ---
@@ -1729,6 +1733,7 @@ function openEvent(id=null, presetDate=null){
     document.getElementById("evMemo").value=e.memo||"";
     repeatSel.value=e.repeat||"none";
     repeatEnd.value=e.repeatEnd||"";
+    document.getElementById("evInToday").checked = (e.inToday!==false);
   }else{
     setEvType("event");
     title.textContent="NEW · 追加";
@@ -1738,6 +1743,7 @@ function openEvent(id=null, presetDate=null){
     document.getElementById("evMemo").value="";
     repeatSel.value="none";
     repeatEnd.value="";
+    document.getElementById("evInToday").checked = true;
   }
   document.getElementById("repeatEndWrap").style.display = repeatSel.value==="none"?"none":"";
   repeatSel.onchange=()=>{document.getElementById("repeatEndWrap").style.display=repeatSel.value==="none"?"none":"";};
@@ -1763,13 +1769,15 @@ function saveEvent(){
   const memo=document.getElementById("evMemo").value.trim();
   const repeat=document.getElementById("evRepeat").value;
   const repeatEnd=document.getElementById("evRepeatEnd").value;
+  const inToday=document.getElementById("evInToday").checked;
   if(!date||!title){alert("日付と見出しは必須です。");return;}
   const isMemo=evType==="memo";
   const rec={
     date, title, memo, kind:evType,
     time: isMemo?"":time,
     repeat: isMemo?"none":repeat,
-    repeatEnd: (isMemo||repeat==="none")?"":repeatEnd
+    repeatEnd: (isMemo||repeat==="none")?"":repeatEnd,
+    inToday: isMemo?false:inToday
   };
   if(editingEventId){
     Object.assign(data.events.find(x=>x.id===editingEventId),rec);
