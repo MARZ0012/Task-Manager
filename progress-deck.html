@@ -753,10 +753,13 @@
     .cards{grid-template-columns:1fr;gap:14px}
     .card{padding:20px}
 
-    .calendar{padding:10px 8px}
-    .cal-grid{grid-auto-rows:minmax(118px,auto);gap:3px}
-    .cal-dow-row{gap:3px}
-    .cal-cell{padding:5px 4px;border-radius:8px;gap:2px}
+    /* full-bleed: cancel body's 14px side padding so the grid uses the whole screen width.
+       drop the panel's own padding / border / background (the glass chrome) — cells keep their look. */
+    .calendar{padding:0 2px;margin:0 -12px;background:none;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:0}
+    .calendar::before,.calendar::after{display:none}
+    .cal-grid{grid-auto-rows:minmax(122px,auto);gap:1px}
+    .cal-dow-row{gap:1px;margin-bottom:3px;padding:0 1px}
+    .cal-cell{padding:4px 3px;border-radius:8px;gap:2px}
     .cal-date{font-size:12px}
     .cal-dow{font-size:9px;letter-spacing:.1em;padding:4px 0}
     /* events: drop the chip box, let titles wrap to 2 lines so the day is actually readable */
