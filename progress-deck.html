@@ -404,13 +404,13 @@
   .td-item .box:hover{border-color:var(--spec-amber)}
   .td-item.on .box{background:linear-gradient(135deg,var(--spec-amber),var(--spec-red));border-color:transparent}
   .td-item.on .box::after{content:"";position:absolute;left:6px;top:2px;width:4px;height:10px;border:solid #150a04;border-width:0 2px 2px 0;transform:rotate(45deg)}
-  .td-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .td-text{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
   .td-text .t{font-size:13.5px;font-weight:300;color:var(--ink);letter-spacing:.02em}
   .td-item.on .td-text .t{color:var(--ink-2);text-decoration:line-through;text-decoration-color:var(--ink-4)}
   .td-text .src{font-size:10.5px;letter-spacing:.06em;color:var(--ink-4);font-family:"Roboto Mono",monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .td-item .star{cursor:pointer;font-size:14px;color:var(--spec-amber);flex:0 0 auto;transition:.18s}
   .td-item .star:hover{filter:brightness(1.3)}
-  .td-item .flag{flex:0 0 auto;cursor:pointer;font-size:9.5px;letter-spacing:.08em;padding:3px 8px;border-radius:20px;
+  .td-item .flag{flex:0 0 auto;margin-right:auto;cursor:pointer;font-size:9.5px;letter-spacing:.08em;padding:3px 8px;border-radius:20px;
     font-family:"Roboto Mono",monospace;border:1px solid transparent;transition:.16s var(--ease);user-select:none;white-space:nowrap}
   .td-item .flag.must{color:var(--spec-amber);border-color:rgba(224,145,63,.4);background:rgba(224,145,63,.1)}
   .td-item .flag.opt{color:var(--ink-4);border-color:var(--line-2);background:transparent}
@@ -593,6 +593,8 @@
   .dm-memo{font-size:12px;color:var(--ink-3);margin-top:4px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
   .dm-tags{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
   .dm-tag{font-size:9.5px;letter-spacing:.1em;color:var(--ink-4);text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+  .dm-del{flex:0 0 auto;cursor:pointer;color:var(--ink-4);font-size:13px;line-height:1;padding:6px 8px;margin:-4px -4px 0 0;border-radius:8px;transition:.16s var(--ease);-webkit-tap-highlight-color:transparent}
+  .dm-del:hover{color:var(--cal-high);background:rgba(191,91,84,.12)}
 
   /* ---- per-task difficulty toggle (inside card) ---- */
   .cal-row{display:flex;align-items:center;gap:11px;margin-top:16px}
@@ -681,6 +683,8 @@
   .ev-actions{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px;flex-wrap:wrap}
   .ev-del{font-size:10px;color:var(--ink-4);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;background:none;border:none;font-family:inherit}
   .ev-del:hover{color:var(--cal-high)}
+  .btn.ev-del-btn{margin-right:auto;border-color:rgba(191,91,84,.5);color:var(--cal-high)}
+  .btn.ev-del-btn:hover{border-color:var(--cal-high);background:rgba(191,91,84,.12)}
 
   /* ---- event type toggle ---- */
   .type-toggle{display:flex;gap:6px;margin-bottom:20px;border:1px solid var(--line);border-radius:11px;padding:4px;background:rgba(0,0,0,.2)}
@@ -931,6 +935,7 @@
     <textarea id="evMemo" class="note" placeholder="場所、持ち物、気をつけること…" style="min-height:70px"></textarea>
 
     <div class="row" style="margin-top:18px">
+      <button class="btn ev-del-btn" id="evDeleteBtn" onclick="deleteEvent()" style="display:none">削除</button>
       <button class="btn" onclick="closeEvent()">CANCEL</button>
       <button class="btn solid" onclick="saveEvent()">SAVE</button>
     </div>
@@ -2102,6 +2107,7 @@ function openDay(key){
           <div class="dm-title">${esc(e.title)}</div>
           ${memoHTML}${tags}
         </div>
+        <span class="dm-del" title="削除" onclick="event.stopPropagation();delEventById('${e.id}','${key}')">✕</span>
       </div>`;
     }).join("");
   }
@@ -2193,16 +2199,20 @@ function openEvent(id=null, presetDate=null){
   }
   document.getElementById("repeatEndWrap").style.display = repeatSel.value==="none"?"none":"";
   repeatSel.onchange=()=>{document.getElementById("repeatEndWrap").style.display=repeatSel.value==="none"?"none":"";};
-  // dynamic action row (delete + ics) — rebuild each open
+  // DELETE はCANCEL/SAVEの並びに配置（編集時のみ表示）
+  const delBtn=document.getElementById("evDeleteBtn");
+  if(delBtn) delBtn.style.display = id ? "" : "none";
+  // dynamic action row（.ics ボタンのみ。編集時かつ予定のとき）
   let actions=modal.querySelector(".ev-actions");
   if(actions)actions.remove();
   if(id){
     const e=data.events.find(x=>x.id===id);
-    const row=document.createElement("div");
-    row.className="ev-actions";
-    const icsBtn=(e.kind!=="memo")?`<button class="btn" onclick="downloadICS('${id}')">📅 カレンダーに追加(.ics)</button>`:"<span></span>";
-    row.innerHTML=`<button class="ev-del" onclick="deleteEvent()">削除</button>${icsBtn}`;
-    modal.querySelector(".modal").appendChild(row);
+    if(e && e.kind!=="memo"){
+      const row=document.createElement("div");
+      row.className="ev-actions";
+      row.innerHTML=`<button class="btn" onclick="downloadICS('${id}')">📅 カレンダーに追加(.ics)</button>`;
+      modal.querySelector(".modal").appendChild(row);
+    }
   }
   modal.classList.add("show");
   modal.querySelector(".modal").scrollTop = 0;   // always start at the top of the form
@@ -2243,6 +2253,15 @@ function deleteEvent(){
   if(!confirm("これを削除しますか？"))return;
   data.events=data.events.filter(x=>x.id!==editingEventId);
   closeEvent();render();
+}
+// 指定IDの予定を直接削除（その日の一覧の×ボタン用）。削除後はカレンダーと開いている一覧を更新。
+function delEventById(id, dayKey){
+  if(!confirm("この予定を削除しますか？"))return;
+  data.events=data.events.filter(x=>x.id!==id);
+  render();
+  if(dayKey && document.getElementById("dayModal").classList.contains("show")){
+    openDay(dayKey);   // 一覧を再描画（空になれば空表示に）
+  }
 }
 
 // ======================================================================
