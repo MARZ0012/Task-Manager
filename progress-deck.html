@@ -631,6 +631,10 @@
   .up-item{flex:0 0 auto;min-width:182px;padding:15px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
   .up-item:last-child{border-right:none}
   .up-item:hover{background:rgba(255,255,255,.02)}
+  .up-item.is-today{background:rgba(224,145,63,.09)}
+  .up-item.is-today:hover{background:rgba(224,145,63,.13)}
+  .up-item.done{opacity:.5}
+  .up-item.done .up-title{text-decoration:line-through;text-decoration-color:var(--ink-4);color:var(--ink-3)}
   .up-when{font-family:"Roboto Mono",monospace;font-size:11px;letter-spacing:.06em;color:var(--spec-amber)}
   .up-when .rel{color:var(--ink-4);margin-left:7px}
   .up-title{font-size:14px;font-weight:300;color:var(--ink);letter-spacing:.02em;line-height:1.4}
@@ -1391,15 +1395,16 @@ function renderToday(){
     <button class="td-add-btn" onclick="addAdhoc()">追加</button>
   </div>${counterChips}`;
 
-  // リスト本体
-  let listItems="";
-  // カレンダー予定（時刻順・各予定が個別タスク）
+  // リスト本体：イベント/単発/ステップを1つの配列にまとめ、未完了→上・完了→下でまとめて並べる
+  // （カレンダー予定も完了したら下に沈む。同じ完了状態の中ではイベント→単発→ステップの順）
   const optTodayArr=(data.routine.eventOpt&&data.routine.eventOpt[todayK])||[];
+  const rows=[];
+  // カレンダー予定（個別タスク）
   evTasks.forEach(x=>{
     const e=x.e;
     const when = e.time||"終日";
     const isOpt=optTodayArr.includes(e.id);
-    listItems+=`<div class="td-item ${x.on?'on':''}" data-cel="ev-${e.id}">
+    rows.push({done:x.on?1:0, grp:0, html:`<div class="td-item ${x.on?'on':''}" data-cel="ev-${e.id}">
       <div class="box" onclick="toggleEventTask('${e.id}')"></div>
       <div class="td-text">
         <span class="t">${esc(e.title)}</span>
@@ -1407,15 +1412,14 @@ function renderToday(){
       </div>
       <span class="flag ${isOpt?'opt':'must'}" title="${isOpt?'任意（母数に入れない）':'必須（母数に入れる）'}" onclick="event.stopPropagation();toggleEventOpt('${e.id}')">${isOpt?'任意':'必須'}</span>
       <span class="x" title="カレンダーで開く" onclick="setView('calendar');openEvent('${e.id}')">↗</span>
-    </div>`;
+    </div>`});
   });
-  // 単発タスク（未完了→上、完了→下に薄く）
-  const sortedAdhoc=[...adhocAll].sort((a,b)=>(a.a.on?1:0)-(b.a.on?1:0));
-  sortedAdhoc.forEach(x=>{
+  // 単発タスク
+  adhocAll.forEach(x=>{
     const active=x.a.active?'active':'';
     const isCounter=!!x.a.counterId;
     const srcLabel = isCounter ? `カウンター${x.a.active?' · 着手中':''}` : `単発タスク${x.a.active?' · 着手中':''}`;
-    listItems+=`<div class="td-item ${x.a.on?'on':''} ${active}" data-cel="ad-${x.a.id}">
+    rows.push({done:x.a.on?1:0, grp:1, html:`<div class="td-item ${x.a.on?'on':''} ${active}" data-cel="ad-${x.a.id}">
       <div class="box" onclick="toggleAdhoc('${x.a.id}')"></div>
       <div class="td-text">
         <span class="t" ${x.a.on?'':'contenteditable'} spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
@@ -1424,13 +1428,12 @@ function renderToday(){
       <span class="flag ${x.a.opt?'opt':'must'}" title="${x.a.opt?'任意（母数に入れない）':'必須（母数に入れる）'}" onclick="event.stopPropagation();toggleAdhocOpt('${x.a.id}')">${x.a.opt?'任意':'必須'}</span>
       ${x.a.on?'':`<span class="play ${x.a.active?'on':''}" title="着手中にする" onclick="toggleAdhocActive('${x.a.id}')">▸</span>`}
       <span class="x" title="削除" onclick="delAdhoc('${x.a.id}')">✕</span>
-    </div>`;
+    </div>`});
   });
-  // プロジェクトの今日ステップ（未完了→上、完了→下に薄く）
-  const sortedSteps=[...steps].sort((a,b)=>(a.ch.on?1:0)-(b.ch.on?1:0));
-  sortedSteps.forEach(x=>{
+  // プロジェクトの今日ステップ
+  steps.forEach(x=>{
     const active=x.ch.active?'active':'';
-    listItems+=`<div class="td-item ${x.ch.on?'on':''} ${active}" data-cel="st-${x.cid}-${x.gid}-${x.idx}">
+    rows.push({done:x.ch.on?1:0, grp:2, html:`<div class="td-item ${x.ch.on?'on':''} ${active}" data-cel="st-${x.cid}-${x.gid}-${x.idx}">
       <div class="box" onclick="toggleStepFromToday('${x.cid}','${x.gid}',${x.idx})"></div>
       <div class="td-text">
         <span class="t">${esc(x.ch.t)}</span>
@@ -1439,8 +1442,11 @@ function renderToday(){
       <span class="flag ${x.ch.opt?'opt':'must'}" title="${x.ch.opt?'任意（母数に入れない）':'必須（母数に入れる）'}" onclick="event.stopPropagation();toggleStepOpt('${x.cid}','${x.gid}',${x.idx})">${x.ch.opt?'任意':'必須'}</span>
       ${x.ch.on?'':`<span class="play ${x.ch.active?'on':''}" title="着手中にする" onclick="toggleStepActive('${x.cid}','${x.gid}',${x.idx})">▸</span>`}
       <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
-    </div>`;
+    </div>`});
   });
+  // 未完了(0)→完了(1)。同じ完了状態の中では元の種別順(イベント→単発→ステップ)を保持（安定ソート）
+  rows.sort((a,b)=> (a.done-b.done) || (a.grp-b.grp));
+  const listItems = rows.map(r=>r.html).join("");
 
   let listHTML;
   if(totalShown===0){
@@ -2138,6 +2144,7 @@ function renderUpcoming(){
   if(up.length===0){
     body=`<div class="up-empty">予定はまだありません。Calendar タブから追加できます。</div>`;
   }else{
+    const doneToday=(data.routine.eventDone&&data.routine.eventDone[todayKey])||[];
     body=`<div class="up-list">`+up.map(o=>{
       const d=o.d, e=o.e;
       const md=`${d.getMonth()+1}/${d.getDate()}`;
@@ -2145,7 +2152,11 @@ function renderUpcoming(){
       const diff=Math.round((d - new Date(todayKey+"T00:00:00"))/86400000);
       const rel=diff===0?"今日":diff===1?"明日":`${diff}日後`;
       const rep=(e.repeat&&e.repeat!=="none")?' ↻':'';
-      return `<div class="up-item" onclick="setView('calendar');openEvent('${e.id}')">
+      const isToday=o.key===todayKey;
+      const isDone=isToday && doneToday.includes(e.id);   // 今日やることで完了済み
+      // 当日かつ未完了のときだけハイライト。完了したら打ち消し線・ハイライト解除
+      const cls=(isToday&&!isDone?' is-today':'')+(isDone?' done':'');
+      return `<div class="up-item${cls}" onclick="setView('calendar');openEvent('${e.id}')">
         <div class="up-when">${md}(${wd}) ${e.time||""}<span class="rel">${rel}${rep}</span></div>
         <div class="up-title">${esc(e.title)}</div>
       </div>`;
