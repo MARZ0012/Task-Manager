@@ -197,9 +197,9 @@
   .glass > *{position:relative;z-index:1}
 
   /* ============ header ============ */
-  header.bar{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:54px}
+  header.bar{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:30px}
   .brand .kicker{font-size:10px;letter-spacing:.55em;text-transform:uppercase;color:var(--ink-2);font-weight:400;display:flex;align-items:center;gap:11px}
-  .brand h1{font-weight:200;font-size:clamp(30px,4.4vw,52px);letter-spacing:.16em;line-height:1.05;margin-top:16px;text-transform:uppercase;color:var(--ink)}
+  .brand h1{font-weight:200;font-size:clamp(24px,3vw,36px);letter-spacing:.16em;line-height:1.05;margin-top:14px;text-transform:uppercase;color:var(--ink)}
   .brand .tag{font-size:13px;color:var(--ink-2);letter-spacing:.06em;margin-top:12px;font-weight:300}
   .ping{width:6px;height:6px;border-radius:50%;background:var(--spec-amber);box-shadow:0 0 12px 2px rgba(224,145,63,.6)}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -604,13 +604,13 @@
   .tab.active{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));color:#1a0d06;font-weight:500}
 
   /* ============ upcoming events banner ============ */
-  .upcoming{display:flex;align-items:stretch;gap:0;margin-bottom:44px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(16px);overflow:hidden}
-  .up-label{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:22px 26px;border-right:1px solid var(--line);min-width:172px}
+  .upcoming{display:flex;align-items:stretch;gap:0;margin-bottom:28px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(16px);overflow:hidden}
+  .up-label{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:16px 26px;border-right:1px solid var(--line);min-width:172px}
   .up-label .k{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
   .up-label .ic{font-size:21px;font-weight:100;color:var(--ink);letter-spacing:.04em}
   .up-label .up-big{font-size:26px;font-weight:200;letter-spacing:.14em;color:var(--ink);text-transform:uppercase}
   .up-list{flex:1;display:flex;gap:0;overflow-x:auto}
-  .up-item{flex:0 0 auto;min-width:182px;padding:20px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
+  .up-item{flex:0 0 auto;min-width:182px;padding:15px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
   .up-item:last-child{border-right:none}
   .up-item:hover{background:rgba(255,255,255,.02)}
   .up-when{font-family:"Roboto Mono",monospace;font-size:11px;letter-spacing:.06em;color:var(--spec-amber)}
@@ -694,7 +694,7 @@
     .wrap{max-width:100%}
 
     header.bar{margin-bottom:26px;gap:14px}
-    .brand h1{font-size:34px;letter-spacing:.1em}
+    .brand h1{font-size:28px;letter-spacing:.1em}
     .brand .kicker{font-size:10px;letter-spacing:.32em}
     .head-right{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:10px}
     .clock{font-size:10px;line-height:1.7;text-align:left}
@@ -764,7 +764,7 @@
   }
 
   @media (max-width:380px){
-    .brand h1{font-size:29px}
+    .brand h1{font-size:24px}
     .cal-cell{}
     .cal-ev{font-size:8.5px}
   }
@@ -812,7 +812,7 @@
 
     <!-- CATEGORIES -->
     <div class="toolbar">
-      <div class="sec-title" style="margin:0">Goals — 仕事 / 私生活</div>
+      <div class="sec-title" style="margin:0">Goals</div>
       <div class="controls">
         <button class="btn" id="notifyBtn" onclick="enableNotifications()">🔔 通知を有効化</button>
         <button class="btn" onclick="openCat()">+ カテゴリ追加</button>
@@ -1465,8 +1465,7 @@ function goalHTML(cid,g){
   }).join("");
   // slider row: manual input when no steps, read-only auto bar when steps exist
   const sliderRow = auto
-    ? `<div class="slider-row auto"><div class="auto-bar"><i style="width:${prog}%"></i></div>
-         <span class="auto-note">ステップの達成率から自動計算</span></div>`
+    ? `<div class="slider-row auto"><div class="auto-bar"><i style="width:${prog}%"></i></div></div>`
     : `<div class="slider-row">
          <input type="range" min="0" max="100" value="${prog}" oninput="setProg('${cid}','${g.id}',this.value,this)"></div>`;
   return `<div class="card glass ${prog>=100?'done':''}" style="--cat:${col[0]};--cat-glow:${col[1]}" draggable="true" data-cat="${cid}" data-goal="${g.id}">
