@@ -210,7 +210,11 @@
   .clock{text-align:right;font-family:"Roboto Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.14em;line-height:2.1;font-weight:300}
   .clock b{color:var(--ink-2);font-weight:400}
   .clock-row{display:flex;align-items:center;gap:12px}
-  .ticker-wrap{margin:0 0 18px auto;max-width:580px;border-radius:var(--r);overflow:hidden}
+  /* 株価ティッカー：右寄せ＋全体を50%に縮小。
+     内側を広め(960px)に取って5銘柄が切れないようにし、scaleで半分に。
+     縮小後の余白を出さないため、wrapの高さを縮小後に合わせ overflow:hidden で切り取る。 */
+  .ticker-wrap{margin:0 0 14px auto;width:480px;max-width:100%;height:34px;overflow:hidden}
+  .ticker-scale{width:960px;transform:scale(.5);transform-origin:top right}
   .ticker-wrap .tradingview-widget-container{min-height:0}
   .weather{display:flex;align-items:center;gap:7px;font-family:"Roboto Mono",monospace;color:var(--ink-2);white-space:nowrap}
   .weather:empty{display:none}
@@ -927,8 +931,10 @@
 
   <!-- ============ 株価ティッカー（TradingView 公開ウィジェット・ログイン/キー不要） ============ -->
   <div class="ticker-wrap">
-    <div class="tradingview-widget-container" id="tvTicker">
-      <div class="tradingview-widget-container__widget"></div>
+    <div class="ticker-scale">
+      <div class="tradingview-widget-container" id="tvTicker">
+        <div class="tradingview-widget-container__widget"></div>
+      </div>
     </div>
   </div>
 
