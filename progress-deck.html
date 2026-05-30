@@ -859,6 +859,7 @@ function defaultData(){
       adhoc:[],
       achieve:{},          // dayKey -> 達成数（数値のみ・永久保持）
       achieveLog:{},       // dayKey -> [完了したタスク名...]（直近1週間のみ保持）
+      eventDone:{},        // dayKey -> [完了したカレンダー予定ID...]
       counters:[           // 任意の回数カウンター（プール・図書館等）
         {id:uid(),name:"プール",count:0},
         {id:uid(),name:"図書館",count:0}
@@ -907,6 +908,7 @@ function migrate(d){
   if(!Array.isArray(d.routine.adhoc)) d.routine.adhoc = d.routine.adhoc ? Object.values(d.routine.adhoc) : [];
   if(!d.routine.achieve)d.routine.achieve={};
   if(!d.routine.achieveLog)d.routine.achieveLog={};
+  if(!d.routine.eventDone)d.routine.eventDone={};
   if(!Array.isArray(d.routine.counters)) d.routine.counters = d.routine.counters ? Object.values(d.routine.counters) : [];
   if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
   pruneAchieveLog(d);   // 直近1週間より古い達成名ログを削除
@@ -926,6 +928,10 @@ function rolloverIfNeeded(){
       data.routine.adhoc=data.routine.adhoc.filter(a=>!a.on);
     }
     data.routine.currentDay=today;
+    // 過去日のカレンダー予定の完了記録を掃除（当日分のみ保持）
+    if(data.routine.eventDone){
+      Object.keys(data.routine.eventDone).forEach(k=>{ if(k<today) delete data.routine.eventDone[k]; });
+    }
   }
   // ensure today's log entry exists
   if(!data.routine.log[today])data.routine.log[today]={};
@@ -1029,20 +1035,17 @@ function renderToday(){
   const adhoc=data.routine.adhoc||[];
   const adhocAll=adhoc.map((a,i)=>({a,i}));
 
-  const openCount=adhocAll.filter(x=>!x.a.on).length + steps.filter(x=>!x.ch.on).length;
-  const doneSteps=steps.filter(x=>x.ch.on).length;
-  const totalShown=steps.length+adhocAll.length;
+  // 今日のカレンダー予定 → 個別のチェックできるタスクとして扱う
+  // 完了状態は data.routine.eventDone[todayK] に予定IDの配列で保持（日付ごと・自動リセット）
+  if(!data.routine.eventDone) data.routine.eventDone={};
+  const doneToday = data.routine.eventDone[todayK] || (data.routine.eventDone[todayK]=[]);
+  const evTasks = todayEvents.map(e=>({e, on:doneToday.includes(e.id)}));
 
-  // 今日の予定ブロック
-  let evHTML="";
-  if(todayEvents.length){
-    evHTML=`<div class="td-events">
-      <div class="td-sub">今日の予定</div>`+
-      todayEvents.map(e=>`<div class="td-ev">
-        <span class="te-time">${e.time||"終日"}</span>
-        <span class="te-title">${esc(e.title)}</span>
-      </div>`).join("")+`</div>`;
-  }
+  const openCount=adhocAll.filter(x=>!x.a.on).length
+    + steps.filter(x=>!x.ch.on).length
+    + evTasks.filter(x=>!x.on).length;
+  const doneSteps=steps.filter(x=>x.ch.on).length;
+  const totalShown=steps.length+adhocAll.length+evTasks.length;
 
   // 入力欄 + カウンターから選ぶ導線
   const counters=data.routine.counters||[];
@@ -1060,6 +1063,19 @@ function renderToday(){
 
   // リスト本体
   let listItems="";
+  // カレンダー予定（時刻順・各予定が個別タスク）
+  evTasks.forEach(x=>{
+    const e=x.e;
+    const when = e.time||"終日";
+    listItems+=`<div class="td-item ${x.on?'on':''}">
+      <div class="box" onclick="toggleEventTask('${e.id}')"></div>
+      <div class="td-text">
+        <span class="t">${esc(e.title)}</span>
+        <span class="src">📅 予定 · ${when}</span>
+      </div>
+      <span class="x" title="カレンダーで開く" onclick="setView('calendar');openEvent('${e.id}')">↗</span>
+    </div>`;
+  });
   // 単発タスク（未完了→上、完了→下に薄く）
   const sortedAdhoc=[...adhocAll].sort((a,b)=>(a.a.on?1:0)-(b.a.on?1:0));
   sortedAdhoc.forEach(x=>{
@@ -1104,7 +1120,6 @@ function renderToday(){
         <div class="sub">残り ${openCount} 件 · ステップ ${doneSteps}/${steps.length} 完了</div>
       </div>
     </div>
-    ${evHTML}
     ${listHTML}
     ${addHTML}`;
 }
@@ -1133,6 +1148,22 @@ function toggleAdhoc(id){
     // 取り消し：達成-1・ログ削除・カウンター-1
     unbumpAchieve(a.t);
     if(a.counterId){const c=data.routine.counters.find(x=>x.id===a.counterId);if(c)c.count=Math.max(0,(c.count||0)-1);}
+  }
+  render();
+}
+// カレンダー予定タスクの完了トグル（その日ごとに保持）
+function toggleEventTask(eid){
+  const todayK=dateKey(new Date());
+  if(!data.routine.eventDone) data.routine.eventDone={};
+  const arr = data.routine.eventDone[todayK] || (data.routine.eventDone[todayK]=[]);
+  const ev = data.events.find(x=>x.id===eid);
+  const idx = arr.indexOf(eid);
+  if(idx>=0){
+    arr.splice(idx,1);                       // 取り消し
+    if(ev) unbumpAchieve(ev.title);
+  }else{
+    arr.push(eid);                           // 完了
+    if(ev) bumpAchieve(ev.title);
   }
   render();
 }
