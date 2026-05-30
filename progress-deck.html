@@ -717,6 +717,10 @@
   .cal-cell:hover{border-color:var(--line-2);background:rgba(255,255,255,.025)}
   .cal-cell.blank{background:transparent;border-color:transparent;cursor:default}
   .cal-cell.blank:hover{background:transparent}
+  /* 前後の月の日付（薄く表示） */
+  .cal-cell.spill{background:transparent;border-color:rgba(255,255,255,.04)}
+  .cal-cell.spill .cal-date{color:var(--ink-4);opacity:.45}
+  .cal-cell.spill:hover{background:rgba(255,255,255,.015);border-color:var(--line)}
   .cal-cell.today{border-color:var(--spec-amber);background:rgba(224,145,63,.06)}
   /* 祝日：日付を赤系に、右下に祝日名を小さく */
   .cal-cell.holiday .cal-date{color:var(--cal-high)}
@@ -2194,7 +2198,15 @@ function renderCalendar(){
   let dows="";
   DOW_EN.forEach((d,i)=>{dows+=`<div class="cal-dow ${i===0?'sun':''}${i===6?'sat':''}">${d}</div>`});
   let cells="";
-  for(let i=0;i<startDow;i++)cells+=`<div class="cal-cell blank"></div>`;
+  // 前月末の日付で先頭の空きを埋める（薄く表示・クリックでその日を開ける）
+  if(startDow>0){
+    const prevDays=new Date(y,m,0).getDate();   // 前月の日数
+    for(let i=startDow-1;i>=0;i--){
+      const dnum=prevDays-i;
+      const pd=new Date(y,m-1,dnum), pkey=dateKey(pd);
+      cells+=`<div class="cal-cell spill" onclick="openDay('${pkey}')"><div class="cal-date-row"><span class="cal-date">${dnum}</span></div></div>`;
+    }
+  }
   for(let day=1;day<=daysInMonth;day++){
     const d=new Date(y,m,day), key=dateKey(d);
     const all=eventsOn(key);
@@ -2217,10 +2229,13 @@ function renderCalendar(){
     cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${hol?'holiday':''}" onclick="openDay('${key}')">
       ${dateRow}${evHTML}${holHTML}</div>`;
   }
-  // pad the last row so every row has 7 cells (keeps column widths stable)
+  // 末尾を翌月頭の日付で埋めて、各行7マスに揃える
   const totalCells=startDow+daysInMonth;
   const trailing=(7-(totalCells%7))%7;
-  for(let i=0;i<trailing;i++)cells+=`<div class="cal-cell blank"></div>`;
+  for(let i=1;i<=trailing;i++){
+    const nd=new Date(y,m+1,i), nkey=dateKey(nd);
+    cells+=`<div class="cal-cell spill" onclick="openDay('${nkey}')"><div class="cal-date-row"><span class="cal-date">${i}</span></div></div>`;
+  }
   el.innerHTML=`<div class="cal-dow-row">${dows}</div><div class="cal-grid">${cells}</div>`;
 }
 
