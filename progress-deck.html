@@ -292,6 +292,34 @@
   .stat .n{font-size:30px;font-weight:100;color:var(--ink)}
   .stat .l{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;line-height:1.7}
 
+  /* ===== MEALS：彼とのご飯（1週間 × 昼夜の ○✕） ===== */
+  .meals{padding:18px 22px;margin-bottom:16px}
+  .meals-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+  .meals-head .k{font-size:9px;letter-spacing:.36em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
+  .meals-head h2{font-size:16px;font-weight:200;letter-spacing:.05em}
+  .meals-head .lg{display:flex;gap:14px;margin-left:auto;font-size:10px;color:var(--ink-3);letter-spacing:.04em;font-family:"Roboto Mono",monospace}
+  .meals-head .lg b{color:var(--spec-green);font-weight:400}
+  .meals-head .lg i{color:var(--spec-red);font-style:normal;font-weight:400}
+  .meals-grid{display:grid;grid-template-columns:auto repeat(7,1fr);gap:5px;align-items:center}
+  .meals-grid .day-h{text-align:center;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);font-weight:400;line-height:1.4}
+  .meals-grid .day-h .d{display:block;font-size:11px;color:var(--ink-3);margin-top:1px;letter-spacing:0;font-family:"Roboto Mono",monospace}
+  .meals-grid .day-h.sun{color:var(--cal-high)}
+  .meals-grid .day-h.sat{color:var(--spec-blue)}
+  .meals-grid .day-h.is-today .wd{color:var(--spec-amber)}
+  .meals-grid .day-h.is-today .d{color:var(--spec-amber)}
+  /* 日曜=赤・土曜=青 はカレンダーと統一。今日(オレンジ)よりこちらを優先 */
+  .meals-grid .day-h.sun.is-today .wd,.meals-grid .day-h.sun.is-today .d{color:var(--cal-high)}
+  .meals-grid .day-h.sat.is-today .wd,.meals-grid .day-h.sat.is-today .d{color:var(--spec-blue)}
+  .meals-grid .row-lbl{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-right:5px;white-space:nowrap}
+  .meal-cell{aspect-ratio:auto;min-height:30px;border:1px solid var(--line);border-radius:8px;background:var(--panel);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:300;
+    color:var(--ink-4);transition:.18s var(--ease);user-select:none;-webkit-tap-highlight-color:transparent}
+  .meal-cell:hover{border-color:var(--line-2)}
+  .meal-cell.is-today{box-shadow:inset 0 0 0 1px rgba(224,145,63,.3)}
+  .meal-cell.together{background:rgba(63,122,95,.13);border-color:rgba(63,122,95,.4);color:var(--spec-green)}
+  .meal-cell.apart{background:rgba(191,91,84,.12);border-color:rgba(191,91,84,.4);color:var(--spec-red)}
+  .meal-cell.maybe{background:rgba(199,154,82,.13);border-color:rgba(199,154,82,.4);color:var(--cal-mid)}
+
   .rt-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:11px;margin-bottom:24px}
   .rt-check{display:flex;align-items:center;gap:13px;padding:15px 17px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease)}
   .rt-check.on{background:rgba(224,145,63,.07);border-color:rgba(224,145,63,.28)}
@@ -853,6 +881,16 @@
     .today-list{grid-template-columns:1fr;gap:8px}
     .td-add{margin-top:8px}
 
+    .meals{padding:14px 12px}
+    .meals-grid{grid-template-columns:auto repeat(7,1fr);gap:4px}
+    .meal-cell{min-height:28px;font-size:13px;border-radius:7px}
+    .meals-grid .row-lbl{font-size:8px;letter-spacing:.08em;padding-right:3px}
+    .meals-grid .day-h{font-size:8px;letter-spacing:.05em}
+    .meals-grid .day-h .d{font-size:10px}
+    .meals-head{margin-bottom:10px}
+    .meals-head h2{font-size:14px}
+    .meals-head .lg{flex-basis:100%;margin-left:0;font-size:9.5px}
+
     .toolbar{gap:10px}
     .controls{width:100%}
     .controls .btn{flex:1;text-align:center;justify-content:center;padding:10px 8px;font-size:10px}
@@ -950,6 +988,9 @@
   <div id="view-tasks">
     <!-- TODAY -->
     <div class="today glass" id="today"></div>
+
+    <!-- MEALS（彼とのご飯：1週間・昼夜の ○✕） -->
+    <div class="meals glass" id="meals"></div>
 
     <!-- STATS -->
     <div class="metrics" id="metrics"></div>
@@ -1129,7 +1170,8 @@ function defaultData(){
         {id:uid(),name:"部屋を片付ける",cal:"low",prog:20,note:"",checks:[]}
       ]}
     ],
-    events:[]
+    events:[],
+    meals:{}    // dayKey("YYYY-MM-DD") -> { lunch:"together"|"apart"|null, dinner:同左 } 彼とのご飯
   };
 }
 
@@ -1166,6 +1208,7 @@ function migrate(d){
   if(!d.routine.eventOpt)d.routine.eventOpt={};
   if(!Array.isArray(d.routine.counters)) d.routine.counters = d.routine.counters ? Object.values(d.routine.counters) : [];
   if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
+  if(!d.meals || typeof d.meals!=="object" || Array.isArray(d.meals)) d.meals = {};
   pruneAchieveLog(d);   // 直近1週間より古い達成名ログを削除
   return d;
 }
@@ -1365,6 +1408,7 @@ let _celebrateItemId=null;          // 直近に完了したタスクの要素ID
 let _prevAllDone=null;              // 前回描画時に「必須タスク全完了」だったか
 function render(){
   renderToday();
+  renderMeals();
   renderBoard();
   renderMetrics();
   renderUpcoming();
@@ -1599,6 +1643,65 @@ function achieveNames(scope){
     if(inScope) (log[k]||[]).forEach(n=>out.push(n));
   }
   return out;
+}
+
+// ======================================================================
+// ====== MEALS：彼とのご飯（1週間 × 昼/夜の ○✕） ======
+//  - クリックで未設定 → ○(一緒) → ✕(別) → 未設定 を循環
+//  - 月曜はじまりの今週を表示。データは data.meals[dateKey] = {lunch, dinner}
+// ======================================================================
+function mealWeekDays(){
+  // 日曜はじまりの今週（7日分）の Date 配列を返す
+  const now=new Date();
+  const dow=now.getDay();                 // 日=0 ... 土=6
+  const sun=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow);
+  const days=[];
+  for(let i=0;i<7;i++){ days.push(new Date(sun.getFullYear(),sun.getMonth(),sun.getDate()+i)); }
+  return days;
+}
+function renderMeals(){
+  const el=document.getElementById("meals"); if(!el)return;
+  if(!data.meals) data.meals={};
+  const WD=["SUN","MON","TUE","WED","THU","FRI","SAT"];   // 日曜はじまり・カレンダー表記に合わせる
+  const days=mealWeekDays();
+  const todayK=dateKey(new Date());
+  const cell=(k,slot)=>{
+    const v=(data.meals[k]||{})[slot]||null;
+    const cls=v==="together"?"together":v==="apart"?"apart":v==="maybe"?"maybe":"";
+    const mark=v==="together"?"○":v==="apart"?"✕":v==="maybe"?"△":"·";
+    const isT=k===todayK?" is-today":"";
+    return `<div class="meal-cell ${cls}${isT}" onclick="cycleMeal('${k}','${slot}')">${mark}</div>`;
+  };
+  const heads=days.map((d,i)=>{
+    const k=dateKey(d);
+    // カレンダーと同じく 日=赤(cal-high) / 土=青(spec-blue)、今日はオレンジ
+    const col=i===0?" sun":i===6?" sat":"";
+    const isT=k===todayK?" is-today":"";
+    return `<div class="day-h${col}${isT}"><span class="wd">${WD[i]}</span><span class="d">${d.getDate()}</span></div>`;
+  }).join("");
+  const lunchRow=days.map(d=>cell(dateKey(d),"lunch")).join("");
+  const dinnerRow=days.map(d=>cell(dateKey(d),"dinner")).join("");
+  el.innerHTML=`
+    <div class="meals-head">
+      <h2>Meal Plan</h2>
+    </div>
+    <div class="meals-grid">
+      <div class="corner"></div>${heads}
+      <div class="row-lbl">昼</div>${lunchRow}
+      <div class="row-lbl">夜</div>${dinnerRow}
+    </div>`;
+}
+// 未設定 → 一緒(○) → 別(✕) → たぶん/未定(△) → 未設定 を循環
+function cycleMeal(k,slot){
+  if(!data.meals) data.meals={};
+  if(!data.meals[k]) data.meals[k]={lunch:null,dinner:null};
+  const cur=data.meals[k][slot]||null;
+  const next=cur===null?"together":cur==="together"?"apart":cur==="apart"?"maybe":null;
+  data.meals[k][slot]=next;
+  // 両方未設定になった日はキーごと削除（データを溜めない）
+  if(!data.meals[k].lunch && !data.meals[k].dinner) delete data.meals[k];
+  renderMeals();
+  save();
 }
 
 function renderToday(){
