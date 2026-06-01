@@ -2126,7 +2126,7 @@ function renderMetrics(){
   const calCol={high:"var(--cal-high)",mid:"var(--cal-mid)",low:"var(--cal-low)"};
   const calName={high:"高",mid:"中",low:"低"};
   const goals=[];
-  data.cats.forEach(c=>c.goals.forEach(g=>goals.push({name:g.name,cal:g.cal||"mid",prog:Math.max(0,Math.min(100,+g.prog||0))})));
+  data.cats.forEach(c=>c.goals.forEach(g=>goals.push({name:g.name,cal:g.cal||"mid",prog:Math.max(0,Math.min(100,goalProg(g)))})));
   let wSum=0,wProg=0;
   goals.forEach(g=>{const w=calW[g.cal]||calW.mid; wSum+=w; wProg+=w*g.prog;});
   const allPct=wSum>0?Math.round(wProg/wSum):0;
