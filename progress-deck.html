@@ -2385,7 +2385,12 @@ function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileRe
 function updateClock(){const now=new Date();
   const t=now.toLocaleTimeString("ja-JP");
   const d=now.toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit",weekday:"short"});
-  document.getElementById("clock").innerHTML=`<b>${d}</b><br>${t}`}
+  document.getElementById("clock").innerHTML=`<b>${d}</b><br>${t}`;
+  // 分が変わったら UPCOMING を再描画（開始+1時間経過の自動打ち消しを反映）
+  const mk=now.getHours()*60+now.getMinutes();
+  if(_lastClockMin!==mk){ _lastClockMin=mk; try{renderUpcoming();}catch(_){} }
+}
+let _lastClockMin=-1;
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 
 setInterval(updateClock,1000);
@@ -2620,8 +2625,16 @@ function renderUpcoming(){
       const rep=(e.repeat&&e.repeat!=="none")?' ↻':'';
       const isToday=o.key===todayKey;
       const isDone=isToday && doneToday.includes(e.id);   // 今日やることで完了済み
-      // 当日かつ未完了のときだけハイライト。完了したら打ち消し線・ハイライト解除
-      const cls=(isToday&&!isDone?' is-today':'')+(isDone?' done':'');
+      // 開始時刻から1時間経過したら自動で「過ぎた予定」とみなす
+      let isPast=false;
+      if(e.time && /^\d{1,2}:\d{2}$/.test(e.time)){
+        const [hh,mm]=e.time.split(":").map(Number);
+        const start=new Date(o.key+"T00:00:00"); start.setHours(hh,mm,0,0);
+        isPast = (now - start) >= 3600000;   // 開始+1時間
+      }
+      // 当日かつ未完了・未経過のときだけハイライト。完了 or 経過したら打ち消し線
+      const struck=isDone||isPast;
+      const cls=(isToday&&!struck?' is-today':'')+(struck?' done':'');
       return `<div class="up-item${cls}" onclick="setView('calendar');openEvent('${e.id}')">
         <div class="up-when">${md}(${wd}) ${e.time||""}<span class="rel">${rel}${rep}</span></div>
         <div class="up-title">${esc(e.title)}</div>
