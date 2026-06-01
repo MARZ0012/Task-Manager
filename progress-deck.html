@@ -270,7 +270,8 @@
   .metric.donut .lg-empty{font-size:10px;color:var(--ink-4)}
   /* Today / This week は縦積みの中サイズ */
   .stat-mid{flex:1 1 150px;display:flex;flex-direction:column;gap:14px;min-width:140px}
-  .stat-mid .metric{flex:1 1 0;display:flex;flex-direction:column;justify-content:center}
+  .stat-mid .metric{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;overflow:visible;position:relative}
+  .stat-mid .metric.accent{flex:1 1 auto}
   .stat-mid .metric .val{letter-spacing:.06em}
   .stat-mid .metric .val small{letter-spacing:.08em;margin-left:2px}
   /* カウンターを stat zone 内に 2×2 でコンパクト同居 */
@@ -338,9 +339,9 @@
     color:var(--ink-4);transition:.18s var(--ease);user-select:none;-webkit-tap-highlight-color:transparent}
   .meal-cell:hover{border-color:var(--line-2)}
   .meal-cell.is-today{box-shadow:inset 0 0 0 1px rgba(224,145,63,.3)}
-  .meal-cell.together{color:var(--spec-green)}
-  .meal-cell.apart{color:var(--spec-red)}
-  .meal-cell.maybe{color:var(--cal-mid)}
+  .meal-cell.together{color:var(--ink)}
+  .meal-cell.apart{color:var(--ink)}
+  .meal-cell.maybe{color:var(--ink)}
 
   .rt-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:11px;margin-bottom:24px}
   .rt-check{display:flex;align-items:center;gap:13px;padding:15px 17px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease)}
@@ -614,6 +615,11 @@
   .wk-bars{display:grid;grid-template-columns:repeat(7,1fr);align-items:stretch;gap:5px;margin-top:11px}
   .wk-bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
   .wk-bar .bar-track{height:46px;display:flex;align-items:flex-end;justify-content:center;width:100%}
+  /* stat zone 内の THIS WEEK バーはコンパクトに */
+  .stat-mid .wk-bars{margin-top:7px;gap:3px}
+  .stat-mid .wk-bar{gap:3px}
+  .stat-mid .wk-bar .bar-track{height:24px}
+  .stat-mid .wk-bar b{font-size:7px}
   .wk-bar span{display:block;width:60%;max-width:12px;border-radius:3px;background:var(--line-2);transition:height .4s var(--ease),background .2s;height:4px}
   .wk-bar.has span{background:linear-gradient(180deg,var(--spec-amber),var(--spec-red))}
   .wk-bar.is-today span{box-shadow:0 0 8px 1px rgba(224,145,63,.4)}
