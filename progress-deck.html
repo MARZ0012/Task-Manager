@@ -246,13 +246,33 @@
   @keyframes syncspin{to{transform:rotate(360deg)}}
 
   /* ============ metrics ============ */
-  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px;margin-bottom:14px}
-  .metric{padding:18px 18px 16px;position:relative;overflow:hidden}
-  .metric .lab{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
-  .metric .val{font-size:36px;font-weight:100;margin-top:11px;letter-spacing:.01em;line-height:1;color:var(--ink);display:inline-block;transform-origin:left center;will-change:transform;vertical-align:middle}
-  .metric .val small{font-size:13px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
+  /* ===== STAT ZONE：円グラフ(大) + Today/Week + カウンター2×2 を一行に ===== */
+  .metrics{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;align-items:stretch}
+  .metric{padding:11px 16px 10px;position:relative;overflow:hidden}
+  .metric .lab{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-2);font-weight:400}
+  .metric .val{font-size:22px;font-weight:100;margin-top:5px;letter-spacing:.01em;line-height:1;color:var(--ink);display:inline-block;transform-origin:left center;will-change:transform;vertical-align:middle}
+  .metric .val small{font-size:11px;color:var(--ink-3);font-weight:300;letter-spacing:.02em}
   .metric.accent .val{background:linear-gradient(96deg,var(--spec-amber),var(--spec-red));-webkit-background-clip:text;background-clip:text;color:transparent}
   .metric .spark{display:none}
+  /* 全タスク達成リング（多層ドーナツ） */
+  .metric.donut{flex:1 1 320px;display:flex;align-items:center;gap:18px;padding:16px 22px;min-width:300px}
+  .metric.donut .ring-d{position:relative;width:132px;height:132px;flex:0 0 auto}
+  .metric.donut .ring-d svg{transform:rotate(-90deg);display:block}
+  .metric.donut .ring-d .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink);font-family:"Roboto Mono",monospace;line-height:1}
+  .metric.donut .ring-d .pct b{font-size:28px;font-weight:200;line-height:1;transform:translateX(1.5px)}
+  .metric.donut .d-meta{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 auto}
+  .metric.donut .d-meta .lab{margin:0}
+  .metric.donut .d-legend{display:flex;flex-direction:column;gap:5px;max-height:108px;overflow:auto}
+  .metric.donut .lg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-2);line-height:1.2}
+  .metric.donut .lg-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+  .metric.donut .lg-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .metric.donut .lg-pct{flex:0 0 auto;font-family:"Roboto Mono",monospace;font-size:10px;color:var(--ink-3)}
+  .metric.donut .lg-empty{font-size:10px;color:var(--ink-4)}
+  /* Today / This week は縦積みの中サイズ */
+  .stat-mid{flex:1 1 150px;display:flex;flex-direction:column;gap:14px;min-width:140px}
+  .stat-mid .metric{flex:1 1 0;display:flex;flex-direction:column;justify-content:center}
+  /* カウンターを stat zone 内に 2×2 でコンパクト同居 */
+  .metrics .counters-inline{flex:1 1 220px;min-width:200px;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start}
 
   .echo{padding:20px 26px;margin-bottom:44px;display:flex;gap:16px;align-items:center;font-size:14px;font-weight:300;letter-spacing:.04em;color:var(--ink-2);
     border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(14px)}
@@ -581,7 +601,7 @@
   /* クリック可能メトリクス */
   .metric.clickable{cursor:pointer;transition:.2s var(--ease)}
   .metric.clickable:hover{border-color:var(--line-2);background:var(--panel-2)}
-  .metric .metric-hint{font-size:8.5px;letter-spacing:.12em;color:var(--ink-4);margin-top:8px;text-transform:uppercase}
+  .metric .metric-hint{font-size:8.5px;letter-spacing:.12em;color:var(--ink-4);margin-top:5px;text-transform:uppercase}
 
   /* ---- streak badge & weekly mini bars ---- */
   .streak-badge{margin-top:0;margin-left:14px;position:relative;top:3px;display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.04em;color:var(--spec-amber);
@@ -617,6 +637,15 @@
   .counter-add{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line-2);border-radius:13px;
     color:var(--ink-4);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:.22s var(--ease);min-height:90px;text-align:center;padding:10px}
   .counter-add:hover{border-color:var(--ink-3);color:var(--ink-2);background:rgba(255,255,255,.015)}
+  /* stat zone 内のコンパクトカウンター（2×2） */
+  .counters-inline .counter-chip{padding:9px 10px 8px;gap:4px;border-radius:11px;min-width:0}
+  .counters-inline .cc-name{font-size:9.5px;letter-spacing:.04em}
+  .counters-inline .cc-count{font-size:19px}
+  .counters-inline .cc-count small{font-size:9px;margin-left:2px}
+  .counters-inline .cc-ctrl{gap:4px;margin-top:0}
+  .counters-inline .cc-btn{width:22px;height:20px;font-size:12px;border-radius:6px}
+  .counters-inline .cc-del{font-size:9px}
+  .counters-inline .counter-add{min-height:0;border-radius:11px;font-size:8.5px;letter-spacing:.1em;padding:8px;flex-direction:column;gap:2px}
 
   /* 達成内容パネル */
   .ap-modal{max-width:420px}
@@ -854,11 +883,16 @@
     .up-label .up-big{font-size:16px;letter-spacing:.18em;font-weight:500}
     .up-item{min-width:150px;padding:14px 16px}
 
-    .metrics{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-    .metric{padding:14px 14px 13px}
-    .metric .lab{font-size:8.5px;letter-spacing:.16em}
-    .metric .val{font-size:27px;margin-top:7px}
-    .metric .val small{font-size:11px}
+    .metrics{gap:10px;margin-bottom:20px}
+    .metric.donut{flex:1 1 100%;padding:14px 16px;gap:14px}
+    .metric.donut .ring-d{width:108px;height:108px}
+    .metric.donut .ring-d .pct b{font-size:25px}
+    .stat-mid{flex:1 1 130px;gap:10px}
+    .metrics .counters-inline{flex:1 1 100%;gap:8px}
+    .metric{padding:9px 12px 8px}
+    .metric .lab{font-size:8px;letter-spacing:.14em}
+    .metric .val{font-size:18px;margin-top:4px}
+    .metric .val small{font-size:10px}
     .wk-bars{height:38px;gap:4px;margin-top:9px}
     .streak-badge{font-size:10px;padding:2px 8px;margin-top:7px}
 
@@ -2064,11 +2098,6 @@ function moveCat(cid,dir){
 }
 
 function renderMetrics(){
-  // プロジェクト数
-  const projects=data.cats.length;
-  // ステップ総数 / 達成済（今オンになっているステップ数）
-  let stepTotal=0,stepDone=0;
-  data.cats.forEach(c=>c.goals.forEach(g=>(g.checks||[]).forEach(ch=>{stepTotal++;if(ch.on)stepDone++;})));
   // 達成カウント（今日 / 今週）
   const ach=achieveStats();
   const streak=streakDays();
@@ -2089,15 +2118,64 @@ function renderMetrics(){
   }).join("")+`</div>`;
   // 今日メトリクス：今日やることの 完了数 / 総数（例 2/6）
   const tp=todayProgress();
-  // 上段メトリクス（TODAY/THIS WEEK はクリックで完了内容パネル）
-  const top=
+  // ===== 全タスク達成リング（バウムクーヘン型） =====
+  //   各ゴールを同心円リング1本ずつで表現。色 = 難易度(high/mid/low)、円弧 = prog%。
+  //   外側の全体リングは置かず、中央に加重平均%を表示。
+  //   重み high=5 / mid=3 / low=1
+  const calW={high:5,mid:3,low:1};
+  const calCol={high:"var(--cal-high)",mid:"var(--cal-mid)",low:"var(--cal-low)"};
+  const calName={high:"高",mid:"中",low:"低"};
+  const goals=[];
+  data.cats.forEach(c=>c.goals.forEach(g=>goals.push({name:g.name,cal:g.cal||"mid",prog:Math.max(0,Math.min(100,+g.prog||0))})));
+  let wSum=0,wProg=0;
+  goals.forEach(g=>{const w=calW[g.cal]||calW.mid; wSum+=w; wProg+=w*g.prog;});
+  const allPct=wSum>0?Math.round(wProg/wSum):0;
+  // ジオメトリ
+  const SZ=132, C=SZ/2;            // SVG全体サイズ・中心
+  const RO=61;                     // 一番外側リングの半径（外側へ広げる）
+  const RI=29;                     // 一番内側リングの半径（中央%の余白を大きく確保）
+  const GAP_DEG=3;                 // 各リングの始端に作る切れ目(度)
+  const n=goals.length;
+  const ringStep=n>1?(RO-RI)/(n-1):0;                  // ゴール数で均等割り
+  const iw=n<=1?8:Math.max(2.5,Math.min(8,ringStep-2)); // リング太さ（細め・間隔に応じて）
+  let rings="";
+  goals.forEach((g,i)=>{
+    const rr=n>1?RO-i*ringStep:RO;                      // 外側から内側へ
+    const cc=2*Math.PI*rr;
+    const gapLen=cc*(GAP_DEG/360);
+    // 下地（薄い難易度色のフルリング、始端に切れ目）
+    rings+=`<circle cx="${C}" cy="${C}" r="${rr}" stroke="${calCol[g.cal]}" stroke-opacity=".16" stroke-width="${iw}" fill="none"
+      stroke-dasharray="${(cc-gapLen).toFixed(2)} ${gapLen.toFixed(2)}"/>`;
+    // 進捗弧（濃い難易度色・先端丸め）
+    const len=(cc-gapLen)*(g.prog/100);
+    rings+=`<circle cx="${C}" cy="${C}" r="${rr}" stroke="${calCol[g.cal]}" stroke-width="${iw}" fill="none" ${g.prog>0&&g.prog<100?'stroke-linecap="round"':''}
+      stroke-dasharray="${len.toFixed(2)} ${(cc-len).toFixed(2)}" style="transition:stroke-dasharray .5s var(--ease)">
+      <title>${esc(g.name)}（難易度${calName[g.cal]}）— ${g.prog}%</title></circle>`;
+  });
+  // 凡例（ゴール名＋難易度色ドット）
+  const legend=goals.length
+    ? `<div class="d-legend">`+goals.map(g=>`
+        <div class="lg-item"><span class="lg-dot" style="background:${calCol[g.cal]}"></span><span class="lg-name">${esc(g.name)}</span><span class="lg-pct">${g.prog}%</span></div>`).join("")+`</div>`
+    : `<div class="d-legend"><div class="lg-empty">目標がまだありません</div></div>`;
+  const donutHTML=`<div class="metric glass donut">
+      <div class="ring-d">
+        <svg width="${SZ}" height="${SZ}" viewBox="0 0 ${SZ} ${SZ}">
+          ${rings}
+        </svg>
+        <div class="pct"><b>${allPct}</b></div>
+      </div>
+      <div class="d-meta">
+        <div class="lab">ALL TASKS</div>
+        ${legend}
+      </div>
+    </div>`;
+  // 中段：TODAY / THIS WEEK を縦積み
+  const midStats=`<div class="stat-mid">`+
     metricClickable("TODAY",tp.done,"/"+tp.total,"accent","showAchievePanel('today')",streakBadge)+
     metricClickable("THIS WEEK",ach.week,"","","showAchievePanel('week')",weekBars)+
-    metric("STEPS",stepDone,"/"+stepTotal)+
-    metric("PROJECTS",projects,"");
-  // カウンター群
+    `</div>`;
+  // カウンター群（stat zone 内に 2×2 で同居）
   const counters=data.routine.counters||[];
-  let counterHTML="";
   const chips=counters.map(c=>`
     <div class="counter-chip">
       <div class="cc-name" contenteditable spellcheck="false" oninput="renameCounter('${c.id}',this.textContent)">${esc(c.name)}</div>
@@ -2108,21 +2186,11 @@ function renderMetrics(){
         <span class="cc-del" title="削除" onclick="delCounter('${c.id}')">✕</span>
       </div>
     </div>`).join("");
-  counterHTML=`
-    <div class="counters-wrap">
-      <div class="counters-grid">
-        ${chips}
-        <div class="counter-add" onclick="addCounter()">＋ 新しいカウンター</div>
-      </div>
-    </div>`;
-  document.getElementById("metrics").innerHTML=top;
-  // カウンターは metrics の直後の専用コンテナへ
-  let cc=document.getElementById("countersBox");
-  if(!cc){
-    cc=document.createElement("div"); cc.id="countersBox";
-    document.getElementById("metrics").insertAdjacentElement("afterend",cc);
-  }
-  cc.innerHTML=counterHTML;
+  const countersInline=`<div class="counters-inline">${chips}<div class="counter-add" onclick="addCounter()">＋<span>カウンター</span></div></div>`;
+  // stat zone を一括描画：円グラフ + Today/Week + カウンター
+  document.getElementById("metrics").innerHTML=donutHTML+midStats+countersInline;
+  // 旧 countersBox は使わない（残っていれば除去）
+  const oldCC=document.getElementById("countersBox"); if(oldCC) oldCC.remove();
 }
 function metric(lab,val,suf,cls=""){return `<div class="metric glass ${cls}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div></div>`}
 function metricClickable(lab,val,suf,cls,onclick,extra=""){return `<div class="metric glass clickable ${cls}" onclick="${onclick}"><div class="lab">${lab}</div><div class="val">${val}<small>${suf}</small></div>${extra}</div>`}
