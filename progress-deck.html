@@ -343,6 +343,10 @@
   .meal-cell.together{color:var(--ink)}
   .meal-cell.apart{color:var(--ink)}
   .meal-cell.maybe{color:var(--ink)}
+  /* 過ぎた日は薄く「済んだ感」を出す（ホバーで戻る） */
+  .meal-cell.past{opacity:.4;background:transparent}
+  .meal-cell.past:hover{opacity:.8}
+  .meals-grid .day-h.past{opacity:.45}
 
   .rt-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:11px;margin-bottom:24px}
   .rt-check{display:flex;align-items:center;gap:13px;padding:15px 17px;border:1px solid var(--line);border-radius:13px;background:var(--panel);transition:.2s var(--ease)}
@@ -1714,14 +1718,16 @@ function renderMeals(){
     const cls=v==="together"?"together":v==="apart"?"apart":v==="maybe"?"maybe":"";
     const mark=v==="together"?"○":v==="apart"?"✕":v==="maybe"?"△":"·";
     const isT=k===todayK?" is-today":"";
-    return `<div class="meal-cell ${cls}${isT}" onclick="cycleMeal('${k}','${slot}')">${mark}</div>`;
+    const past=k<todayK?" past":"";   // 今日より前＝過ぎた日
+    return `<div class="meal-cell ${cls}${isT}${past}" onclick="cycleMeal('${k}','${slot}')">${mark}</div>`;
   };
   const heads=days.map((d,i)=>{
     const k=dateKey(d);
     // カレンダーと同じく 日=赤(cal-high) / 土=青(spec-blue)、今日はオレンジ
     const col=i===0?" sun":i===6?" sat":"";
     const isT=k===todayK?" is-today":"";
-    return `<div class="day-h${col}${isT}"><span class="wd">${WD[i]}</span><span class="d">${d.getDate()}</span></div>`;
+    const past=k<todayK?" past":"";
+    return `<div class="day-h${col}${isT}${past}"><span class="wd">${WD[i]}</span><span class="d">${d.getDate()}</span></div>`;
   }).join("");
   const lunchRow=days.map(d=>cell(dateKey(d),"lunch")).join("");
   const dinnerRow=days.map(d=>cell(dateKey(d),"dinner")).join("");
