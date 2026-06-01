@@ -257,7 +257,7 @@
   /* 全タスク達成リング（多層ドーナツ） */
   .metric.donut{flex:1 1 320px;display:flex;align-items:center;gap:18px;padding:16px 22px;min-width:300px}
   .metric.donut .ring-d{position:relative;width:132px;height:132px;flex:0 0 auto}
-  .metric.donut .ring-d svg{transform:rotate(-90deg);display:block}
+  .metric.donut .ring-d svg{transform:rotate(-90deg);display:block;width:100%;height:100%}
   .metric.donut .ring-d .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink);font-family:"Roboto Mono",monospace;line-height:1}
   .metric.donut .ring-d .pct b{font-size:28px;font-weight:200;line-height:1;transform:translateX(1.5px)}
   .metric.donut .d-meta{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 auto}
@@ -1810,7 +1810,7 @@ function renderToday(){
     const e=x.e;
     const when = e.time||"終日";
     const isOpt=optTodayArr.includes(e.id);
-    rows.push({done:x.on?1:0, grp:0, html:`<div class="td-item ${x.on?'on':''}" data-cel="ev-${e.id}">
+    rows.push({done:x.on?1:0, opt:isOpt?1:0, grp:0, html:`<div class="td-item ${x.on?'on':''}" data-cel="ev-${e.id}">
       <div class="box" onclick="toggleEventTask('${e.id}')"></div>
       <div class="td-text">
         <span class="t">${esc(e.title)}</span>
@@ -1825,7 +1825,7 @@ function renderToday(){
     const active=x.a.active?'active':'';
     const isCounter=!!x.a.counterId;
     const srcLabel = isCounter ? `カウンター${x.a.active?' · 着手中':''}` : `単発タスク${x.a.active?' · 着手中':''}`;
-    rows.push({done:x.a.on?1:0, grp:1, html:`<div class="td-item ${x.a.on?'on':''} ${active}" data-cel="ad-${x.a.id}">
+    rows.push({done:x.a.on?1:0, opt:x.a.opt?1:0, grp:1, html:`<div class="td-item ${x.a.on?'on':''} ${active}" data-cel="ad-${x.a.id}">
       <div class="box" onclick="toggleAdhoc('${x.a.id}')"></div>
       <div class="td-text">
         <span class="t" ${x.a.on?'':'contenteditable'} spellcheck="false" oninput="editAdhoc('${x.a.id}',this.textContent)">${esc(x.a.t)}</span>
@@ -1839,7 +1839,7 @@ function renderToday(){
   // プロジェクトの今日ステップ
   steps.forEach(x=>{
     const active=x.ch.active?'active':'';
-    rows.push({done:x.ch.on?1:0, grp:2, html:`<div class="td-item ${x.ch.on?'on':''} ${active}" data-cel="st-${x.cid}-${x.gid}-${x.idx}">
+    rows.push({done:x.ch.on?1:0, opt:x.ch.opt?1:0, grp:2, html:`<div class="td-item ${x.ch.on?'on':''} ${active}" data-cel="st-${x.cid}-${x.gid}-${x.idx}">
       <div class="box" onclick="toggleStepFromToday('${x.cid}','${x.gid}',${x.idx})"></div>
       <div class="td-text">
         <span class="t">${esc(x.ch.t)}</span>
@@ -1850,8 +1850,8 @@ function renderToday(){
       <span class="star on" title="今日やるから外す" onclick="toggleToday('${x.cid}','${x.gid}',${x.idx})">●</span>
     </div>`});
   });
-  // 未完了(0)→完了(1)。同じ完了状態の中では元の種別順(イベント→単発→ステップ)を保持（安定ソート）
-  rows.sort((a,b)=> (a.done-b.done) || (a.grp-b.grp));
+  // 未完了(0)→完了(1) を最優先。同じ完了状態の中では 必須(0)→任意(1)、さらに種別順(イベント→単発→ステップ)
+  rows.sort((a,b)=> (a.done-b.done) || (a.opt-b.opt) || (a.grp-b.grp));
   const listItems = rows.map(r=>r.html).join("");
 
   let listHTML;
