@@ -266,6 +266,7 @@
   .metric.donut .lg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-2);line-height:1.2}
   .metric.donut .lg-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
   .metric.donut .lg-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .metric.donut .lg-proj{color:var(--ink-4);font-size:9.5px;letter-spacing:.02em;margin-right:5px}
   .metric.donut .lg-pct{flex:0 0 auto;font-family:"Roboto Mono",monospace;font-size:10px;color:var(--ink-3)}
   .metric.donut .lg-empty{font-size:10px;color:var(--ink-4)}
   /* Today / This week は縦積みの中サイズ */
@@ -2135,7 +2136,7 @@ function renderMetrics(){
   const calCol={high:"var(--cal-high)",mid:"var(--cal-mid)",low:"var(--cal-low)"};
   const calName={high:"高",mid:"中",low:"低"};
   const goals=[];
-  data.cats.forEach(c=>c.goals.forEach(g=>goals.push({name:g.name,cal:g.cal||"mid",prog:Math.max(0,Math.min(100,goalProg(g)))})));
+  data.cats.forEach(c=>c.goals.forEach(g=>goals.push({cat:c.name,name:g.name,cal:g.cal||"mid",prog:Math.max(0,Math.min(100,goalProg(g)))})));
   let wSum=0,wProg=0;
   goals.forEach(g=>{const w=calW[g.cal]||calW.mid; wSum+=w; wProg+=w*g.prog;});
   const allPct=wSum>0?Math.round(wProg/wSum):0;
@@ -2159,12 +2160,12 @@ function renderMetrics(){
     const len=(cc-gapLen)*(g.prog/100);
     rings+=`<circle cx="${C}" cy="${C}" r="${rr}" stroke="${calCol[g.cal]}" stroke-width="${iw}" fill="none" ${g.prog>0&&g.prog<100?'stroke-linecap="round"':''}
       stroke-dasharray="${len.toFixed(2)} ${(cc-len).toFixed(2)}" style="transition:stroke-dasharray .5s var(--ease)">
-      <title>${esc(g.name)}（難易度${calName[g.cal]}）— ${g.prog}%</title></circle>`;
+      <title>${esc(g.cat)}／${esc(g.name)}（難易度${calName[g.cal]}）— ${g.prog}%</title></circle>`;
   });
-  // 凡例（ゴール名＋難易度色ドット）
+  // 凡例（プロジェクト名 + ゴール名 + 難易度色ドット）
   const legend=goals.length
     ? `<div class="d-legend">`+goals.map(g=>`
-        <div class="lg-item"><span class="lg-dot" style="background:${calCol[g.cal]}"></span><span class="lg-name">${esc(g.name)}</span><span class="lg-pct">${g.prog}%</span></div>`).join("")+`</div>`
+        <div class="lg-item"><span class="lg-dot" style="background:${calCol[g.cal]}"></span><span class="lg-name"><span class="lg-proj">${esc(g.cat)}</span>${esc(g.name)}</span><span class="lg-pct">${g.prog}%</span></div>`).join("")+`</div>`
     : `<div class="d-legend"><div class="lg-empty">目標がまだありません</div></div>`;
   const donutHTML=`<div class="metric glass donut">
       <div class="ring-d">
