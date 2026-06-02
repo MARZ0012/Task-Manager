@@ -995,6 +995,56 @@
     .cal-ev{font-size:8.5px;padding-left:3px}
     .cal-ev .t{font-size:8px;margin-right:2px}
   }
+
+  /* ============ POOL VIEW ============ */
+  .pool-legend-top{font-size:11px;letter-spacing:.08em;color:var(--ink-3);font-weight:300}
+  #poolMonth{cursor:default}
+  #poolMonth:hover{background:transparent;color:var(--ink)}
+  /* 今日のプール状況サマリー */
+  .pool-today{padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    border:1px solid var(--line);border-radius:var(--r);background:var(--panel);backdrop-filter:blur(16px)}
+  .pool-today .pt-k{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);font-weight:400;flex:0 0 auto}
+  .pool-today .pt-date{font-family:"Roboto Mono",monospace;font-size:13px;color:var(--ink-2);letter-spacing:.04em;flex:0 0 auto}
+  .pool-today .pt-status{font-size:15px;font-weight:300;letter-spacing:.02em;flex:1 1 auto;min-width:160px}
+  .pool-today .pt-status.open{color:var(--ink)}
+  .pool-today .pt-status.open b{color:var(--spec-amber);font-weight:400}
+  .pool-today .pt-status.closed{color:var(--ink-3)}
+  /* プール用カレンダーのマス */
+  #poolCalendar .cal-cell{cursor:pointer}
+  .pool-bars{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:3px}
+  .pool-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);transition:background .2s}
+  .pool-bar.on{background:linear-gradient(90deg,var(--spec-amber),var(--spec-red))}
+  .cal-cell.pool-closed{background:rgba(255,255,255,.04)}
+  .cal-cell.pool-closed .cal-date{color:var(--ink-4)}
+  .pool-closed-lab{font-size:9px;color:var(--ink-4);margin-top:auto;letter-spacing:.04em}
+  .pool-none-lab{font-size:9px;color:var(--ink-4);margin-top:auto;letter-spacing:.02em;opacity:.6}
+  /* 凡例パネル */
+  .pool-legend{padding:18px 22px;margin-top:14px}
+  .pool-legend .pl-head{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:13px}
+  .pool-legend .pl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px}
+  .pool-legend .pl-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-2);font-weight:300}
+  .pool-legend .pl-row .pl-bar{width:22px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--spec-amber),var(--spec-red));flex:0 0 auto}
+  .pool-legend .pl-row .pl-n{font-family:"Roboto Mono",monospace;color:var(--ink);flex:0 0 auto}
+  .pool-legend .pl-row .pl-t{font-family:"Roboto Mono",monospace;color:var(--ink-3);font-size:11.5px}
+  .pool-legend .pl-note{font-size:10.5px;color:var(--ink-4);letter-spacing:.02em;margin-top:13px;line-height:1.6}
+  /* プール詳細ポップアップ内 */
+  .pool-detail-row{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-weight:300}
+  .pool-detail-row:last-child{border-bottom:none}
+  .pool-detail-row.off{opacity:.4}
+  .pool-detail-row .pd-n{font-family:"Roboto Mono",monospace;font-size:13px;color:var(--ink-2);flex:0 0 auto;min-width:48px}
+  .pool-detail-row .pd-time{font-family:"Roboto Mono",monospace;font-size:13px;flex:1 1 auto}
+  .pool-detail-row.on .pd-time{color:var(--spec-amber)}
+  .pool-detail-row.off .pd-time{color:var(--ink-4)}
+  .pool-detail-row .pd-mark{font-size:14px;flex:0 0 auto}
+  .pool-detail-row.on .pd-mark{color:var(--spec-green)}
+  .pool-detail-row.off .pd-mark{color:var(--ink-4)}
+  @media (max-width:700px){
+    .pool-today{padding:13px 16px;gap:10px}
+    .pool-today .pt-status{font-size:14px}
+    .pool-legend{padding:15px 16px}
+    .pool-legend .pl-grid{gap:7px 14px}
+    .pool-legend .pl-row{font-size:11.5px}
+  }
 </style>
 </head>
 <body>
@@ -1025,6 +1075,7 @@
       <div class="tabs">
         <button class="tab active" data-view="tasks" onclick="setView('tasks')">Tasks</button>
         <button class="tab" data-view="calendar" onclick="setView('calendar')">Calendar</button>
+        <button class="tab" data-view="pool" onclick="setView('pool')">Pool</button>
       </div>
     </div>
   </header>
@@ -1069,6 +1120,21 @@
       <button class="btn solid" onclick="openEvent()">+ 予定を追加</button>
     </div>
     <div class="calendar glass" id="calendar"></div>
+  </div>
+
+  <!-- ============ POOL VIEW ============ -->
+  <div id="view-pool" style="display:none">
+    <div class="toolbar">
+      <div class="cal-nav">
+        <button class="btn" onclick="poolShift(-1)">‹</button>
+        <div class="cal-month" id="poolMonth">—</div>
+        <button class="btn" onclick="poolShift(1)">›</button>
+      </div>
+      <div class="pool-legend-top">戸越台中学校温水プール</div>
+    </div>
+    <div id="poolToday"></div>
+    <div class="calendar glass" id="poolCalendar"></div>
+    <div class="pool-legend glass" id="poolLegend"></div>
   </div>
 
   <footer>
@@ -2407,7 +2473,201 @@ function setView(v){
   currentView=v;
   document.getElementById("view-tasks").style.display = v==="tasks"?"":"none";
   document.getElementById("view-calendar").style.display = v==="calendar"?"":"none";
+  document.getElementById("view-pool").style.display = v==="pool"?"":"none";
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
+  if(v==="pool") renderPool();
+}
+
+// ======================================================================
+// ====== POOL（戸越台中学校温水プール 一般公開予定） ======
+//  サイトを毎回見に行かなくて済むよう、公開予定表を取り込んだビュー。
+//  各日の利用可能な「回」を配列で保持（1〜4回目）。空配列=その日は公開なし。
+//  休館日は POOL_CLOSED に。新しい月の表が出たら、ここのデータを差し替える。
+//  ※2026年6〜8月分。画像の予定表から読み取り。
+// ======================================================================
+const POOL_TIMES={
+  1:["1回目","9:30–11:50"],
+  2:["2回目","12:30–14:50"],
+  3:["3回目","15:30–17:50"],
+  4:["4回目","18:30–20:50"]
+};
+// 月キー "YYYY-MM" -> { "D": [利用可の回...] }。載っていない日は公開情報なし(=表対象外)。
+const POOL_DATA={
+  "2026-06":{
+    1:[4],2:[4],3:[3,4],4:[4],5:[4],6:[3,4],7:[2,3,4],8:[],9:[4],10:[3,4],
+    11:[4],12:[4],13:[3,4],14:[2,3,4],15:[4],16:[4],17:[3,4],18:[4],19:[4],20:[3,4],
+    21:[2,3,4],22:[4],23:[4],24:[3,4],25:[4],26:[4],27:[3,4],28:[2,3,4],29:[4],30:[4]
+  },
+  "2026-07":{
+    1:[4],2:[4],3:[4],4:[2,3,4],5:[3,4],6:[4],7:[4],8:[4],9:[4],10:[4],
+    11:[2,3,4],12:[3,4],13:[],14:[4],15:[4],16:[4],17:[4],18:[2,3,4],19:[3,4],20:[3,4],
+    21:[3,4],22:[2,3,4],23:[3,4],24:[3,4],25:[2,3,4],26:[3,4],27:[3,4],28:[3,4],29:[2,3,4],30:[3,4],31:[3,4]
+  },
+  "2026-08":{
+    1:[3,4],2:[4],3:[4],4:[4],5:[3,4],6:[4],7:[4],8:[3,4],9:[4],10:[],
+    11:[3,4],12:[3,4],13:[3,4],14:[3,4],15:[3,4],16:[3,4],17:[4],18:[4],19:[3,4],20:[4],
+    21:[4],22:[3,4],23:[4],24:[4],25:[4],26:[3,4],27:[4],28:[4],29:[3,4],30:[4],31:[4]
+  }
+};
+// 休館日（全回×。表内のグレー縦書き「休館日」）
+const POOL_CLOSED={ "2026-06":[8], "2026-07":[13], "2026-08":[10] };
+// 表の対象範囲（最初／最後の月）。範囲外へは送らない。
+const POOL_MONTHS=Object.keys(POOL_DATA).sort();
+
+let poolCursor=null;   // Date（その月の1日）
+
+function poolMonthKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function poolInitCursor(){
+  // 今日の月が表にあればそこ、なければ表の最初の月を開く
+  const today=new Date();
+  const tk=poolMonthKey(today);
+  if(POOL_DATA[tk]) poolCursor=new Date(today.getFullYear(),today.getMonth(),1);
+  else poolCursor=new Date(POOL_MONTHS[0]+"-01T00:00:00");
+}
+function poolShift(n){
+  if(!poolCursor) poolInitCursor();
+  const cur=new Date(poolCursor.getFullYear(),poolCursor.getMonth()+n,1);
+  const k=poolMonthKey(cur);
+  if(!POOL_DATA[k]) return;   // 表の範囲外には移動しない
+  poolCursor=cur;
+  renderPool();
+}
+// 指定日の利用可能な回（配列）。null=表に情報なし、[]=休館/公開なし
+function poolAvail(monthKey,day){
+  if(POOL_CLOSED[monthKey] && POOL_CLOSED[monthKey].includes(day)) return [];
+  const m=POOL_DATA[monthKey];
+  if(!m) return null;
+  return (day in m)? m[day] : null;
+}
+function poolIsClosed(monthKey,day){
+  return POOL_CLOSED[monthKey] && POOL_CLOSED[monthKey].includes(day);
+}
+
+function renderPool(){
+  if(!poolCursor) poolInitCursor();
+  const el=document.getElementById("poolCalendar"); if(!el)return;
+  const y=poolCursor.getFullYear(), m=poolCursor.getMonth();
+  const mk=poolMonthKey(poolCursor);
+  document.getElementById("poolMonth").textContent=`${y}年 ${m+1}月`;
+
+  // ナビボタンの有効/無効（範囲端で薄く）
+  const prevK=poolMonthKey(new Date(y,m-1,1)), nextK=poolMonthKey(new Date(y,m+1,1));
+  const navs=document.querySelectorAll("#view-pool .cal-nav .btn");
+  if(navs[0]) navs[0].style.opacity = POOL_DATA[prevK]?"1":".25";
+  if(navs[1]) navs[1].style.opacity = POOL_DATA[nextK]?"1":".25";
+
+  // --- 今日のサマリー ---
+  renderPoolToday();
+
+  const first=new Date(y,m,1), startDow=first.getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const todayKey=dateKey(new Date());
+
+  let dows="";
+  DOW_EN.forEach((d,i)=>{dows+=`<div class="cal-dow ${i===0?'sun':''}${i===6?'sat':''}">${d}</div>`});
+
+  let cells="";
+  for(let i=0;i<startDow;i++) cells+=`<div class="cal-cell blank"></div>`;
+  for(let day=1;day<=daysInMonth;day++){
+    const d=new Date(y,m,day), key=dateKey(d);
+    const isToday=key===todayKey, isPast=key<todayKey;
+    const hol=holidayName(key);
+    const avail=poolAvail(mk,day);
+    const closed=poolIsClosed(mk,day);
+    let inner=`<div class="cal-date-row"><span class="cal-date">${day}</span></div>`;
+    if(closed){
+      inner+=`<div class="pool-closed-lab">休館</div>`;
+    }else if(avail===null){
+      inner+=`<div class="pool-none-lab">—</div>`;
+    }else{
+      let bars="";
+      for(let r=1;r<=4;r++){ bars+=`<div class="pool-bar ${avail.includes(r)?'on':''}"></div>`; }
+      inner+=`<div class="pool-bars">${bars}</div>`;
+    }
+    const holHTML=hol?`<span class="cal-hol" title="${esc(hol)}">${esc(hol)}</span>`:"";
+    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${closed?'pool-closed':''} ${hol?'holiday':''}"
+      onclick="openPoolDay('${mk}',${day})">${inner}${holHTML}</div>`;
+  }
+  el.innerHTML=`<div class="cal-dow-row">${dows}</div><div class="cal-grid">${cells}</div>`;
+
+  // --- 凡例 ---
+  const legEl=document.getElementById("poolLegend");
+  if(legEl){
+    const rows=[1,2,3,4].map(r=>`
+      <div class="pl-row"><span class="pl-bar"></span><span class="pl-n">${POOL_TIMES[r][0]}</span><span class="pl-t">${POOL_TIMES[r][1]}</span></div>`).join("");
+    legEl.innerHTML=`
+      <div class="pl-head">時間帯（マスの4本のバー＝上から1〜4回目）</div>
+      <div class="pl-grid">${rows}</div>
+      <div class="pl-note">各回入替制。終了10分後が更衣室の退室時間。<br>※月曜（休館日・祝日を除く）は 18:45–20:35 にワンポイントレッスン。<br>※利用時間が変更される場合があります。最新は施設にご確認を。</div>`;
+  }
+}
+
+// 今日のプール状況（表の範囲内のときだけ表示）
+function renderPoolToday(){
+  const el=document.getElementById("poolToday"); if(!el)return;
+  const now=new Date();
+  const mk=poolMonthKey(now), day=now.getDate();
+  const todayStr=`${now.getMonth()+1}/${now.getDate()}(${DOW[now.getDay()]})`;
+  const avail=poolAvail(mk,day);
+  let statusHTML;
+  if(avail===null){
+    el.innerHTML="";  // 表の対象外の月は今日サマリーを出さない
+    return;
+  }
+  if(poolIsClosed(mk,day)){
+    statusHTML=`<div class="pt-status closed">本日は <b style="color:var(--cal-high)">休館日</b> です</div>`;
+  }else if(avail.length===0){
+    statusHTML=`<div class="pt-status closed">本日の一般公開はありません</div>`;
+  }else{
+    const parts=avail.map(r=>`<b>${POOL_TIMES[r][0]} ${POOL_TIMES[r][1]}</b>`).join("、 ");
+    statusHTML=`<div class="pt-status open">利用可: ${parts}</div>`;
+  }
+  el.innerHTML=`<div class="pool-today">
+    <span class="pt-k">Today</span>
+    <span class="pt-date">${todayStr}</span>
+    ${statusHTML}
+  </div>`;
+}
+
+// マスをタップ → その日の各回の時間を一覧表示
+function openPoolDay(mk,day){
+  const [yy,mm]=mk.split("-").map(Number);
+  const d=new Date(yy,mm-1,day);
+  const modal=document.getElementById("dayModal");
+  const titleEl=document.getElementById("dayModalTitle");
+  const body=document.getElementById("dayModalBody");
+  const key=dateKey(d);
+  const todayK=dateKey(new Date());
+  const relTxt=key===todayK?" · 今日":"";
+  const hol=holidayName(key);
+  const holTxt=hol?` · ${hol}`:"";
+  titleEl.textContent=`${yy}/${mm}/${day}（${DOW[d.getDay()]}）${relTxt}${holTxt} · プール`;
+
+  const avail=poolAvail(mk,day);
+  if(poolIsClosed(mk,day)){
+    body.innerHTML=`<div class="dm-empty">この日は <span style="color:var(--cal-high)">休館日</span> です。</div>`;
+  }else if(avail===null){
+    body.innerHTML=`<div class="dm-empty">この日の公開予定は登録されていません。</div>`;
+  }else if(avail.length===0){
+    body.innerHTML=`<div class="dm-empty">この日の一般公開はありません。</div>`;
+  }else{
+    let rows="";
+    for(let r=1;r<=4;r++){
+      const on=avail.includes(r);
+      rows+=`<div class="pool-detail-row ${on?'on':'off'}">
+        <span class="pd-n">${POOL_TIMES[r][0]}</span>
+        <span class="pd-time">${POOL_TIMES[r][1]}</span>
+        <span class="pd-mark">${on?'○':'×'}</span>
+      </div>`;
+    }
+    const isMon=d.getDay()===1 && !poolIsClosed(mk,day) && !hol;
+    const lesson=isMon?`<div class="ap-note">※月曜のため 18:45–20:35 にワンポイントレッスンあり。</div>`:"";
+    body.innerHTML=rows+lesson;
+  }
+  // この日モーダルの「+追加」ボタンはプールでは不要なので隠す
+  const addBtn=document.getElementById("dayAddBtn");
+  if(addBtn) addBtn.style.display="none";
+  modal.classList.add("show");
 }
 
 // ======================================================================
@@ -2588,7 +2848,9 @@ function openDay(key){
       </div>`;
     }).join("");
   }
-  document.getElementById("dayAddBtn").onclick=()=>{ closeDay(); openEvent(null,key); };
+  const _dab=document.getElementById("dayAddBtn");
+  _dab.style.display="";
+  _dab.onclick=()=>{ closeDay(); openEvent(null,key); };
   modal.classList.add("show");
 }
 function closeDay(){document.getElementById("dayModal").classList.remove("show")}
