@@ -728,7 +728,7 @@
   .modal-bg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;
     background:rgba(0,0,0,.7);backdrop-filter:blur(8px)}
   .modal-bg.show{display:flex}
-  .modal{padding:32px;width:100%;max-width:400px}
+  .modal{padding:32px;width:100%;max-width:400px;max-height:calc(100vh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch}
   .modal h4{font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:20px;font-weight:400;color:var(--ink-2)}
   .modal input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:14px;font-size:14px;margin-bottom:20px;font-family:inherit;font-weight:300}
   .modal input:focus{outline:none;border-color:var(--line-2)}
@@ -1011,9 +1011,38 @@
   .pool-today .pt-status.closed{color:var(--ink-3)}
   /* プール用カレンダーのマス */
   #poolCalendar .cal-cell{cursor:pointer}
-  .pool-bars{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:3px}
+  /* 下部にプール(左半分)と生理(右半分)を横並びで置く器 */
+  .pool-foot{display:flex;align-items:flex-end;gap:6px;margin-top:auto;padding-top:3px}
+  .pool-foot .pf-left{flex:1 1 50%;min-width:0}
+  .pool-foot .pf-right{flex:1 1 50%;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+  .pool-bars{display:flex;flex-direction:column;gap:2px}
   .pool-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);transition:background .2s}
   .pool-bar.on{background:linear-gradient(90deg,var(--spec-amber),var(--spec-red))}
+
+  /* ===== 生理サイクル（右半分） ===== */
+  /* 右半分はプールバー(左)とベースラインを揃えて下詰め */
+  .pool-foot .pf-right{justify-content:flex-end;padding-bottom:0}
+  /* 帯：マス下部に出すバー（実績=塗り / 予測=破線）。プールのオレンジと差別化してピンク寄りに */
+  .cyc-band{height:4px;border-radius:2px;background:transparent}
+  .cyc-band.period{background:#d05a86}
+  .cyc-band.period-pred{background:transparent;border:1px dashed #d05a86;height:4px}
+  .cyc-band.pms{background:#5a78b8;opacity:.9}
+  .cyc-band.pms-pred{background:transparent;border:1px dashed #5a78b8;height:4px}
+  .cyc-note-dot{font-size:9px;line-height:1;color:#7e97cf;align-self:flex-end}
+  .cyc-start{font-size:8px;line-height:1;color:#d05a86;align-self:flex-end}
+  /* 生理ビューの凡例 */
+  .pl-row .pl-bar.period{background:#d05a86}
+  .pl-row .pl-bar.pms{background:#5a78b8}
+  .pl-row .pl-bar.pred{background:transparent;border:1px dashed var(--ink-3)}
+  /* 生理記録モーダル内 */
+  .cyc-info{font-size:12px;color:var(--ink-2);line-height:1.7;margin-bottom:18px;font-weight:300}
+  .cyc-info b{color:#d05a86;font-weight:400}
+  .cyc-info .pms-c{color:#7e97cf}
+  .cyc-seg-row{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--ink-2);padding:8px 2px;border-bottom:1px solid var(--line);font-weight:300}
+  .cyc-seg-row:last-child{border-bottom:none}
+  .cyc-seg-row .cs-date{font-family:"Roboto Mono",monospace;color:var(--ink);flex:1 1 auto}
+  .cyc-seg-row .cs-del{background:none;border:none;color:var(--ink-4);cursor:pointer;font-size:15px;padding:2px 6px;flex:0 0 auto}
+  .cyc-seg-row .cs-del:hover{color:var(--cal-high)}
   .cal-cell.pool-closed{background:rgba(255,255,255,.04)}
   .cal-cell.pool-closed .cal-date{color:var(--ink-4)}
   .pool-closed-lab{font-size:9px;color:var(--ink-4);margin-top:auto;letter-spacing:.04em}
@@ -1285,7 +1314,15 @@ function defaultData(){
       ]}
     ],
     events:[],
-    meals:{}    // dayKey("YYYY-MM-DD") -> { lunch:"together"|"apart"|null, dinner:同左 } 彼とのご飯
+    meals:{},    // dayKey("YYYY-MM-DD") -> { lunch:"together"|"apart"|null, dinner:同左 } 彼とのご飯
+    cycle:{      // 生理サイクル
+      starts:[],       // 実績の生理開始日 ["YYYY-MM-DD", ...]（記録から平均周期を算出）
+      lengths:{},      // startKey -> 生理の日数（終了日を入れたとき算出。未入力は既定値を使う）
+      notes:{},        // dayKey -> 体調・症状メモ
+      avgLen:5,        // 生理期間の既定日数（終了日記録がないとき用）
+      cycleLen:26,     // 基本周期（記録が増えると実績平均に上書き表示）
+      pmsDays:3        // 生理前の「ブルーな時期」の日数
+    }
   };
 }
 
@@ -1323,6 +1360,14 @@ function migrate(d){
   if(!Array.isArray(d.routine.counters)) d.routine.counters = d.routine.counters ? Object.values(d.routine.counters) : [];
   if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
   if(!d.meals || typeof d.meals!=="object" || Array.isArray(d.meals)) d.meals = {};
+  // 生理サイクル：古いデータには無いので補完
+  if(!d.cycle || typeof d.cycle!=="object" || Array.isArray(d.cycle)) d.cycle = {};
+  if(!Array.isArray(d.cycle.starts)) d.cycle.starts = d.cycle.starts ? Object.values(d.cycle.starts) : [];
+  if(!d.cycle.lengths || typeof d.cycle.lengths!=="object") d.cycle.lengths = {};
+  if(!d.cycle.notes || typeof d.cycle.notes!=="object") d.cycle.notes = {};
+  if(typeof d.cycle.avgLen!=="number") d.cycle.avgLen = 5;
+  if(typeof d.cycle.cycleLen!=="number") d.cycle.cycleLen = 26;
+  if(typeof d.cycle.pmsDays!=="number") d.cycle.pmsDays = 3;
   pruneAchieveLog(d);   // 直近1週間より古い達成名ログを削除
   return d;
 }
@@ -2524,11 +2569,24 @@ function poolInitCursor(){
   if(POOL_DATA[tk]) poolCursor=new Date(today.getFullYear(),today.getMonth(),1);
   else poolCursor=new Date(POOL_MONTHS[0]+"-01T00:00:00");
 }
+// 移動できる月の範囲（プール表の範囲＋生理予測の6ヶ月先まで）
+function poolNavLimit(){
+  const last=POOL_MONTHS[POOL_MONTHS.length-1];   // 例 "2026-08"
+  let maxK=last;
+  // 生理予測がある場合、今日から約6ヶ月先まで見られるようにする
+  if(data && data.cycle && (data.cycle.starts||[]).length){
+    const limit=_addDays(new Date(),185);
+    const predK=limit.getFullYear()+"-"+String(limit.getMonth()+1).padStart(2,"0");
+    if(predK>maxK) maxK=predK;
+  }
+  return { min:POOL_MONTHS[0], max:maxK };
+}
 function poolShift(n){
   if(!poolCursor) poolInitCursor();
   const cur=new Date(poolCursor.getFullYear(),poolCursor.getMonth()+n,1);
   const k=poolMonthKey(cur);
-  if(!POOL_DATA[k]) return;   // 表の範囲外には移動しない
+  const lim=poolNavLimit();
+  if(k<lim.min || k>lim.max) return;   // 範囲外には移動しない
   poolCursor=cur;
   renderPool();
 }
@@ -2552,9 +2610,10 @@ function renderPool(){
 
   // ナビボタンの有効/無効（範囲端で薄く）
   const prevK=poolMonthKey(new Date(y,m-1,1)), nextK=poolMonthKey(new Date(y,m+1,1));
+  const lim=poolNavLimit();
   const navs=document.querySelectorAll("#view-pool .cal-nav .btn");
-  if(navs[0]) navs[0].style.opacity = POOL_DATA[prevK]?"1":".25";
-  if(navs[1]) navs[1].style.opacity = POOL_DATA[nextK]?"1":".25";
+  if(navs[0]) navs[0].style.opacity = (prevK>=lim.min)?"1":".25";
+  if(navs[1]) navs[1].style.opacity = (nextK<=lim.max)?"1":".25";
 
   // --- 今日のサマリー ---
   renderPoolToday();
@@ -2575,15 +2634,30 @@ function renderPool(){
     const avail=poolAvail(mk,day);
     const closed=poolIsClosed(mk,day);
     let inner=`<div class="cal-date-row"><span class="cal-date">${day}</span></div>`;
+    // --- 左半分：プールバー / 休館・なし表示 ---
+    let leftHTML;
     if(closed){
-      inner+=`<div class="pool-closed-lab">休館</div>`;
+      leftHTML=`<div class="pool-closed-lab">休館</div>`;
     }else if(avail===null){
-      inner+=`<div class="pool-none-lab">—</div>`;
+      leftHTML=`<div class="pool-none-lab">—</div>`;
     }else{
       let bars="";
       for(let r=1;r<=4;r++){ bars+=`<div class="pool-bar ${avail.includes(r)?'on':''}"></div>`; }
-      inner+=`<div class="pool-bars">${bars}</div>`;
+      leftHTML=`<div class="pool-bars">${bars}</div>`;
     }
+    // --- 右半分：生理サイクル帯 ---
+    const cyc=cycleStatus(key);
+    let rightHTML="";
+    if(cyc){
+      const note=(data.cycle.notes&&data.cycle.notes[key])?`<span class="cyc-note-dot">•</span>`:"";
+      const startMark=(cyc.type==="period"&&cyc.dayNo===1)?`<span class="cyc-start">●</span>`:"";
+      let bandCls;
+      if(cyc.type==="period") bandCls=cyc.predicted?"period-pred":"period";
+      else bandCls=cyc.predicted?"pms-pred":"pms";
+      rightHTML=`${startMark}<div class="cyc-band ${bandCls}"></div>${note}`;
+    }
+    const foot=`<div class="pool-foot"><div class="pf-left">${leftHTML}</div><div class="pf-right">${rightHTML}</div></div>`;
+    inner+=foot;
     const holHTML=hol?`<span class="cal-hol" title="${esc(hol)}">${esc(hol)}</span>`:"";
     cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${closed?'pool-closed':''} ${hol?'holiday':''}"
       onclick="openPoolDay('${mk}',${day})">${inner}${holHTML}</div>`;
@@ -2595,10 +2669,35 @@ function renderPool(){
   if(legEl){
     const rows=[1,2,3,4].map(r=>`
       <div class="pl-row"><span class="pl-bar"></span><span class="pl-n">${POOL_TIMES[r][0]}</span><span class="pl-t">${POOL_TIMES[r][1]}</span></div>`).join("");
+    // 生理サイクルの次回予測サマリー
+    const c=data.cycle||{};
+    const len=cycleAvgLen();
+    const allStarts=cycleAllStarts();
+    const todayK=dateKey(new Date());
+    const nextPred=allStarts.find(s=>s.predicted && s.date>=todayK);
+    let cycSummary;
+    if((c.starts||[]).length===0){
+      cycSummary=`まだ記録がありません。マスをタップして生理開始日を記録すると、ここに次回の予測が出ます（基本周期 ${c.cycleLen||26} 日）。`;
+    }else{
+      const last=(c.starts||[]).slice().sort().pop();
+      const [yy,mm,dd]=nextPred?nextPred.date.split("-"):[];
+      const nextTxt=nextPred?`${Number(mm)}/${Number(dd)}`:"—";
+      const daysTo=nextPred?_daysBetween(todayK,nextPred.date):null;
+      const toTxt=(daysTo!=null&&daysTo>=0)?`（あと約${daysTo}日）`:"";
+      cycSummary=`平均周期 <b>${len}日</b> · 直近の記録 ${last.slice(5).replace("-","/")} ／ 次回予測 <b>${nextTxt}</b>${toTxt}`;
+    }
     legEl.innerHTML=`
-      <div class="pl-head">時間帯（マスの4本のバー＝上から1〜4回目）</div>
+      <div class="pl-head">時間帯（マス左の4本のバー＝上から1〜4回目）</div>
       <div class="pl-grid">${rows}</div>
-      <div class="pl-note">各回入替制。終了10分後が更衣室の退室時間。<br>※月曜（休館日・祝日を除く）は 18:45–20:35 にワンポイントレッスン。<br>※利用時間が変更される場合があります。最新は施設にご確認を。</div>`;
+      <div class="pl-note">各回入替制。終了10分後が更衣室の退室時間。<br>※月曜（休館日・祝日を除く）は 18:45–20:35 にワンポイントレッスン。<br>※利用時間が変更される場合があります。最新は施設にご確認を。</div>
+      <div class="pl-head" style="margin-top:20px">生理サイクル（マス右の帯）</div>
+      <div class="pl-grid">
+        <div class="pl-row"><span class="pl-bar period"></span><span class="pl-n">生理</span></div>
+        <div class="pl-row"><span class="pl-bar pms"></span><span class="pl-n">ブルーな時期</span></div>
+        <div class="pl-row"><span class="pl-bar pred"></span><span class="pl-n">予測（破線）</span></div>
+        <div class="pl-row"><span class="cyc-note-dot" style="font-size:12px">•</span><span class="pl-n">メモあり</span></div>
+      </div>
+      <div class="pl-note" style="margin-top:13px">${cycSummary}<br>※マスをタップ → プール情報とあわせて生理の開始・終了・メモを記録できます。記録が増えるほど予測が実際の周期に近づきます。</div>`;
   }
 }
 
@@ -2644,12 +2743,13 @@ function openPoolDay(mk,day){
   titleEl.textContent=`${yy}/${mm}/${day}（${DOW[d.getDay()]}）${relTxt}${holTxt} · プール`;
 
   const avail=poolAvail(mk,day);
+  let poolHTML;
   if(poolIsClosed(mk,day)){
-    body.innerHTML=`<div class="dm-empty">この日は <span style="color:var(--cal-high)">休館日</span> です。</div>`;
+    poolHTML=`<div class="dm-empty">この日は <span style="color:var(--cal-high)">休館日</span> です。</div>`;
   }else if(avail===null){
-    body.innerHTML=`<div class="dm-empty">この日の公開予定は登録されていません。</div>`;
+    poolHTML=`<div class="dm-empty">この日の公開予定は登録されていません。</div>`;
   }else if(avail.length===0){
-    body.innerHTML=`<div class="dm-empty">この日の一般公開はありません。</div>`;
+    poolHTML=`<div class="dm-empty">この日の一般公開はありません。</div>`;
   }else{
     let rows="";
     for(let r=1;r<=4;r++){
@@ -2662,13 +2762,175 @@ function openPoolDay(mk,day){
     }
     const isMon=d.getDay()===1 && !poolIsClosed(mk,day) && !hol;
     const lesson=isMon?`<div class="ap-note">※月曜のため 18:45–20:35 にワンポイントレッスンあり。</div>`:"";
-    body.innerHTML=rows+lesson;
+    poolHTML=rows+lesson;
   }
+  // --- 生理サイクルの記録セクション ---
+  body.innerHTML = poolHTML + cycleDaySection(key);
   // この日モーダルの「+追加」ボタンはプールでは不要なので隠す
   const addBtn=document.getElementById("dayAddBtn");
   if(addBtn) addBtn.style.display="none";
   modal.classList.add("show");
 }
+
+// 生理記録セクションのHTML（その日の状態に応じてボタン/メモ欄を出す）
+function cycleDaySection(key){
+  const c=data.cycle||{};
+  const starts=(c.starts||[]).slice().sort();
+  const isStart=starts.includes(key);
+  const cyc=cycleStatus(key);
+  const note=(c.notes&&c.notes[key])||"";
+  // 状態テキスト
+  let statusTxt;
+  if(cyc&&cyc.type==="period"){
+    statusTxt=cyc.predicted?`<span style="color:var(--cal-high)">予測：生理期間</span>`:`<b>生理 ${cyc.dayNo}日目</b>`;
+  }else if(cyc&&cyc.type==="pms"){
+    statusTxt=cyc.predicted?`<span class="pms-c">予測：ブルーな時期</span>`:`<span class="pms-c">ブルーな時期</span>`;
+  }else{
+    statusTxt=`記録なし`;
+  }
+  // ボタン群：開始日トグル / 終了日（＝この回の日数を確定）
+  let btns="";
+  if(isStart){
+    btns=`<button class="btn" onclick="cycleToggleStart('${key}')">この開始日を取り消す</button>`;
+  }else{
+    btns=`<button class="btn solid" onclick="cycleToggleStart('${key}')">🩸 ここを生理開始日にする</button>`;
+    // 直近の実績開始日があり、この日がそれ以降なら「終了日にする」も出す
+    const lastReal=starts.filter(s=>s<=key).pop();
+    if(lastReal){
+      btns+=`<button class="btn" onclick="cycleSetEnd('${lastReal}','${key}')">この日を終了日にする</button>`;
+    }
+  }
+  return `
+    <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px">
+      <div class="cyc-info">生理サイクル：${statusTxt}</div>
+      <div class="row" style="justify-content:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:14px">${btns}</div>
+      <label>体調・症状メモ（任意）</label>
+      <textarea id="cycNote" class="note" placeholder="痛み、気分、量、服薬など…" style="min-height:60px">${esc(note)}</textarea>
+      <div class="row" style="margin-top:10px;justify-content:flex-end">
+        <button class="btn solid" onclick="cycleSaveNote('${key}')">メモを保存</button>
+      </div>
+    </div>`;
+}
+
+// 開始日のトグル（記録の追加／削除）
+function cycleToggleStart(key){
+  const c=data.cycle; if(!c)return;
+  if(!Array.isArray(c.starts)) c.starts=[];
+  const i=c.starts.indexOf(key);
+  if(i>=0){
+    c.starts.splice(i,1);
+    if(c.lengths) delete c.lengths[key];
+  }else{
+    c.starts.push(key);
+  }
+  save();
+  renderPool();
+  // 詳細モーダルを開き直して最新状態に
+  const [yy,mm,dd]=key.split("-").map(Number);
+  openPoolDay(poolMonthKey(new Date(yy,mm-1,dd)), dd);
+}
+// 終了日を記録（開始日からの日数を lengths に保存）
+function cycleSetEnd(startKey,endKey){
+  const c=data.cycle; if(!c)return;
+  const len=_daysBetween(startKey,endKey)+1;   // 開始日も1日目として数える
+  if(len<1||len>15){ alert("開始日からの日数が不自然です（1〜15日の範囲で指定してください）。"); return; }
+  if(!c.lengths) c.lengths={};
+  c.lengths[startKey]=len;
+  save();
+  renderPool();
+  const [yy,mm,dd]=endKey.split("-").map(Number);
+  openPoolDay(poolMonthKey(new Date(yy,mm-1,dd)), dd);
+}
+// メモ保存
+function cycleSaveNote(key){
+  const c=data.cycle; if(!c)return;
+  if(!c.notes) c.notes={};
+  const v=document.getElementById("cycNote").value.trim();
+  if(v) c.notes[key]=v; else delete c.notes[key];
+  save();
+  renderPool();
+  const el=document.getElementById("cycNote");
+  if(el){ el.style.borderColor="var(--cal-low)"; setTimeout(()=>{el.style.borderColor="";},700); }
+}
+
+
+// ======================================================================
+// ====== 生理サイクル（予測 + 表示） ======
+//  data.cycle.starts に実績の開始日を入れると、平均周期から先6ヶ月分を予測。
+//  記録が1件以下なら基本周期(既定26日)。複数あれば直近の間隔の平均を使う。
+// ======================================================================
+function _ymd(key){const[y,m,d]=key.split("-").map(Number);return new Date(y,m-1,d);}
+function _addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
+function _daysBetween(a,b){return Math.round((_ymd(b)-_ymd(a))/86400000);}
+
+// 実績の開始日から平均周期を計算（足りなければ既定値）
+function cycleAvgLen(){
+  const c=data.cycle; if(!c)return 26;
+  const starts=(c.starts||[]).slice().sort();
+  if(starts.length<2) return c.cycleLen||26;
+  // 直近最大6間隔の平均（古い不規則を引きずらない）
+  const gaps=[];
+  for(let i=1;i<starts.length;i++){ const g=_daysBetween(starts[i-1],starts[i]); if(g>10&&g<60) gaps.push(g); }
+  if(!gaps.length) return c.cycleLen||26;
+  const recent=gaps.slice(-6);
+  return Math.round(recent.reduce((a,b)=>a+b,0)/recent.length);
+}
+// 生理期間の既定日数
+function cyclePeriodLen(){ return (data.cycle&&data.cycle.avgLen)||5; }
+function cyclePmsDays(){ return (data.cycle&&data.cycle.pmsDays)||3; }
+
+// 実績＋予測のすべての「生理開始日」を返す（予測は今日から約6ヶ月先まで）
+function cycleAllStarts(){
+  const c=data.cycle||{};
+  const starts=(c.starts||[]).slice().sort();
+  const result=starts.map(s=>({date:s,predicted:false}));
+  const len=cycleAvgLen();
+  // 予測の起点：最後の実績開始日。無ければ何も予測しない。
+  if(starts.length){
+    let cur=starts[starts.length-1];
+    const limit=_addDays(new Date(),185);   // 約6ヶ月先
+    for(let i=0;i<24;i++){
+      const next=_addDays(_ymd(cur),len);
+      if(next>limit) break;
+      const k=dateKey(next);
+      result.push({date:k,predicted:true});
+      cur=k;
+    }
+  }
+  return result;
+}
+
+// 指定日キーが何に当たるか判定。返り値: null | {type:'period'|'pms', predicted, startKey, dayNo}
+let _cycleCache=null, _cycleCacheKey="";
+function cycleStatus(key){
+  // キャッシュ（同じデータのうちは再計算しない）
+  const sig=JSON.stringify(data.cycle||{});
+  if(_cycleCacheKey!==sig){ _cycleCacheKey=sig; _cycleCache={}; _buildCycleMap(); }
+  return _cycleCache[key]||null;
+}
+function _buildCycleMap(){
+  const map=_cycleCache;
+  const periodLen=cyclePeriodLen(), pms=cyclePmsDays();
+  cycleAllStarts().forEach(s=>{
+    const startDate=_ymd(s.date);
+    // この回の生理日数：実績で終了日（lengths）があればそれを使う
+    const len=(data.cycle.lengths&&data.cycle.lengths[s.date])||periodLen;
+    // 生理期間
+    for(let i=0;i<len;i++){
+      const k=dateKey(_addDays(startDate,i));
+      // 実績を予測で上書きしない
+      if(map[k]&&!map[k].predicted&&s.predicted) continue;
+      map[k]={type:"period",predicted:s.predicted,startKey:s.date,dayNo:i+1};
+    }
+    // PMS（生理前のブルーな時期）：開始日の前 pms 日間
+    for(let i=1;i<=pms;i++){
+      const k=dateKey(_addDays(startDate,-i));
+      if(map[k]) continue;   // 生理期間が優先
+      map[k]={type:"pms",predicted:s.predicted,startKey:s.date};
+    }
+  });
+}
+
 
 // ======================================================================
 // ====== CALENDAR ======
