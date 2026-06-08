@@ -324,6 +324,18 @@
   .meals-head .lg{display:flex;gap:14px;margin-left:auto;font-size:10px;color:var(--ink-3);letter-spacing:.04em;font-family:"Roboto Mono",monospace}
   .meals-head .lg b{color:var(--spec-green);font-weight:400}
   .meals-head .lg i{color:var(--spec-red);font-style:normal;font-weight:400}
+  /* 週送りナビ */
+  .meal-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .meal-nav .mn-btn{background:var(--panel);border:1px solid var(--line);color:var(--ink-2);
+    width:26px;height:26px;border-radius:7px;cursor:pointer;font-size:14px;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:.16s var(--ease);-webkit-tap-highlight-color:transparent}
+  .meal-nav .mn-btn:hover:not(:disabled){border-color:var(--line-2);color:var(--ink)}
+  .meal-nav .mn-btn:disabled{opacity:.25;cursor:default}
+  .meal-nav .mn-wk{font-size:11px;color:var(--ink-2);letter-spacing:.06em;font-weight:400;white-space:nowrap;min-width:104px;text-align:center}
+  .meal-nav .mn-wk i{color:var(--ink-3);font-style:normal;font-family:"Roboto Mono",monospace;font-size:10.5px;margin-left:4px}
+  .meal-nav .mn-today{background:none;border:1px solid var(--line);color:var(--ink-3);
+    font-size:10px;letter-spacing:.08em;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.16s var(--ease);-webkit-tap-highlight-color:transparent}
+  .meal-nav .mn-today:hover{border-color:var(--line-2);color:var(--ink)}
   .meals-grid{display:grid;grid-template-columns:auto repeat(7,1fr);gap:5px;align-items:center}
   .meals-grid .day-h{text-align:center;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);font-weight:400;line-height:1.4}
   .meals-grid .day-h .d{display:block;font-size:11px;color:var(--ink-3);margin-top:1px;letter-spacing:0;font-family:"Roboto Mono",monospace}
@@ -938,6 +950,8 @@
     .meals-head{margin-bottom:10px}
     .meals-head h2{font-size:14px}
     .meals-head .lg{flex-basis:100%;margin-left:0;font-size:9.5px}
+    .meal-nav{margin-left:0;flex-basis:100%;justify-content:flex-start;margin-top:4px}
+    .meal-nav .mn-wk{min-width:0;font-size:10.5px}
 
     .toolbar{gap:10px}
     .controls{width:100%}
@@ -1234,6 +1248,19 @@
   </div>
 </div>
 
+<!-- 繰り返し予定の削除：この日だけ / すべて を選ぶ -->
+<div class="modal-bg" id="repDelModal">
+  <div class="modal glass" style="max-width:360px">
+    <h4>繰り返し予定の削除</h4>
+    <div id="repDelInfo" style="font-size:13px;color:var(--ink-2);line-height:1.7;font-weight:300;margin-bottom:20px">この予定は繰り返し設定されています。どう削除しますか？</div>
+    <div class="row" style="flex-direction:column;gap:10px;align-items:stretch">
+      <button class="btn solid" onclick="repDelConfirm('one')">この日だけ削除</button>
+      <button class="btn" onclick="repDelConfirm('all')" style="color:var(--cal-high)">すべての繰り返しを削除</button>
+      <button class="btn" onclick="closeRepDel()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="monthModal">
   <div class="modal glass" style="max-width:340px">
     <h4>月を選んで移動</h4>
@@ -1359,6 +1386,8 @@ function migrate(d){
   if(!d.routine.eventOpt)d.routine.eventOpt={};
   if(!Array.isArray(d.routine.counters)) d.routine.counters = d.routine.counters ? Object.values(d.routine.counters) : [];
   if(!Array.isArray(d.events)) d.events = d.events ? Object.values(d.events) : [];
+  // 繰り返し予定の「この日だけ除外」用リストを補完
+  d.events.forEach(e=>{ if(!Array.isArray(e.skip)) e.skip = e.skip ? Object.values(e.skip) : []; });
   if(!d.meals || typeof d.meals!=="object" || Array.isArray(d.meals)) d.meals = {};
   // 生理サイクル：古いデータには無いので補完
   if(!d.cycle || typeof d.cycle!=="object" || Array.isArray(d.cycle)) d.cycle = {};
@@ -1809,15 +1838,24 @@ function achieveNames(scope){
 //  - クリックで未設定 → ○(一緒) → ✕(別) → 未設定 を循環
 //  - 月曜はじまりの今週を表示。データは data.meals[dateKey] = {lunch, dinner}
 // ======================================================================
-function mealWeekDays(){
-  // 日曜はじまりの今週（7日分）の Date 配列を返す
+let mealWeekOffset=0;   // 0=今週, 1=来週（この2つだけ許可）
+function mealWeekDays(off){
+  // 日曜はじまり・指定オフセット週（7日分）の Date 配列を返す
+  const o=(off==null)?mealWeekOffset:off;
   const now=new Date();
   const dow=now.getDay();                 // 日=0 ... 土=6
-  const sun=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow);
+  const sun=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+o*7);
   const days=[];
   for(let i=0;i<7;i++){ days.push(new Date(sun.getFullYear(),sun.getMonth(),sun.getDate()+i)); }
   return days;
 }
+function mealShift(n){
+  const next=mealWeekOffset+n;
+  if(next<0 || next>1) return;   // 今週(0)〜来週(1)のみ
+  mealWeekOffset=next;
+  renderMeals();
+}
+function mealThisWeek(){ mealWeekOffset=0; renderMeals(); }
 function renderMeals(){
   const el=document.getElementById("meals"); if(!el)return;
   if(!data.meals) data.meals={};
@@ -1842,9 +1880,19 @@ function renderMeals(){
   }).join("");
   const lunchRow=days.map(d=>cell(dateKey(d),"lunch")).join("");
   const dinnerRow=days.map(d=>cell(dateKey(d),"dinner")).join("");
+  // 週の範囲ラベルと、今週/来週の見出し
+  const wkLabel = mealWeekOffset===0 ? "今週" : "来週";
+  const s=days[0], e=days[6];
+  const rangeTxt=`${s.getMonth()+1}/${s.getDate()} – ${e.getMonth()+1}/${e.getDate()}`;
   el.innerHTML=`
     <div class="meals-head">
       <h2>Meal Plan</h2>
+      <div class="meal-nav">
+        <button class="mn-btn" onclick="mealShift(-1)" ${mealWeekOffset<=0?'disabled':''}>‹</button>
+        <span class="mn-wk">${wkLabel} <i>${rangeTxt}</i></span>
+        <button class="mn-btn" onclick="mealShift(1)" ${mealWeekOffset>=1?'disabled':''}>›</button>
+        ${mealWeekOffset!==0?`<button class="mn-today" onclick="mealThisWeek()">今週へ</button>`:""}
+      </div>
     </div>
     <div class="meals-grid">
       <div class="corner"></div>${heads}
@@ -3003,6 +3051,8 @@ function occursOn(e,key){
   const start=new Date(e.date+"T00:00:00");
   if(target<start)return false;
   if(e.repeatEnd){const end=new Date(e.repeatEnd+"T00:00:00");if(target>end)return false;}
+  // 「この日だけ削除」された日付は出さない
+  if(Array.isArray(e.skip) && e.skip.includes(key)) return false;
   const rep=e.repeat||"none";
   if(rep==="none")return e.date===key;
   if(rep==="daily")return true;
@@ -3100,7 +3150,7 @@ function openDay(key){
       const off=(!isMemo&&e.inToday===false)?`<span class="dm-tag">今日やること外</span>`:"";
       const memoHTML=e.memo?`<div class="dm-memo">${esc(e.memo)}</div>`:"";
       const tags=(rep||off)?`<div class="dm-tags">${rep}${off}</div>`:"";
-      return `<div class="dm-item ${isMemo?'memo':''}" onclick="closeDay();openEvent('${e.id}')">
+      return `<div class="dm-item ${isMemo?'memo':''}" onclick="closeDay();openEvent('${e.id}',null,'${key}')">
         <span class="dm-when">${when}</span>
         <div class="dm-body">
           <div class="dm-title">${esc(e.title)}</div>
@@ -3172,6 +3222,7 @@ function renderUpcoming(){
 // ====== EVENT MODAL (add / edit / delete) ======
 // ======================================================================
 let editingEventId=null;
+let _editingDayKey=null;   // 編集モーダルをどの日付から開いたか（繰り返しのこの日だけ削除用）
 let evType="event";
 function setEvType(t){
   evType=t;
@@ -3182,8 +3233,9 @@ function setEvType(t){
   document.getElementById("evTitle").placeholder = t==="memo"?"例：微熱が出た / 体調すぐれず":"例：通院 / 打ち合わせ / 締め切り";
   document.getElementById("evMemoLab").textContent = t==="memo"?"くわしく（任意）":"メモ（任意）";
 }
-function openEvent(id=null, presetDate=null){
+function openEvent(id=null, presetDate=null, fromDayKey=null){
   editingEventId=id;
+  _editingDayKey=fromDayKey;   // 繰り返し「この日だけ削除」の基準日
   const modal=document.getElementById("eventModal");
   const title=document.getElementById("eventModalTitle");
   const repeatSel=document.getElementById("evRepeat");
@@ -3264,18 +3316,79 @@ function saveEvent(){
 }
 function deleteEvent(){
   if(!editingEventId)return;
+  const e=data.events.find(x=>x.id===editingEventId);
+  if(!e)return;
+  if(e.repeat && e.repeat!=="none"){
+    // 繰り返し予定：この日だけ/すべて を選ばせる。基準日は編集中に開いていた日付。
+    openRepDel(editingEventId, _editingDayKey||e.date, ()=>{ closeEvent(); });
+    return;
+  }
   if(!confirm("これを削除しますか？"))return;
   data.events=data.events.filter(x=>x.id!==editingEventId);
   closeEvent();render();
 }
-// 指定IDの予定を直接削除（その日の一覧の×ボタン用）。削除後はカレンダーと開いている一覧を更新。
+// 指定IDの予定を削除（その日の一覧の×ボタン用）。繰り返しなら選択モーダルへ。
 function delEventById(id, dayKey){
+  const e=data.events.find(x=>x.id===id);
+  if(!e)return;
+  if(e.repeat && e.repeat!=="none"){
+    openRepDel(id, dayKey, ()=>{
+      if(dayKey && document.getElementById("dayModal").classList.contains("show")) openDay(dayKey);
+    });
+    return;
+  }
   if(!confirm("この予定を削除しますか？"))return;
   data.events=data.events.filter(x=>x.id!==id);
   render();
   if(dayKey && document.getElementById("dayModal").classList.contains("show")){
     openDay(dayKey);   // 一覧を再描画（空になれば空表示に）
   }
+}
+
+// ===== 繰り返し削除の選択モーダル =====
+let _repDel={id:null, key:null, after:null};
+function openRepDel(id, key, after){
+  _repDel={id, key, after:after||null};
+  const e=data.events.find(x=>x.id===id);
+  const info=document.getElementById("repDelInfo");
+  if(info && e){
+    const [y,m,d]=(key||e.date).split("-").map(Number);
+    info.innerHTML=`「${esc(e.title)}」は繰り返し予定です。<br><b style="color:var(--ink);font-weight:400">${m}/${d}</b> の分だけ消すか、繰り返し全体を消すか選んでください。`;
+  }
+  document.getElementById("repDelModal").classList.add("show");
+}
+function closeRepDel(){ document.getElementById("repDelModal").classList.remove("show"); _repDel={id:null,key:null,after:null}; }
+function repDelConfirm(mode){
+  const {id,key,after}=_repDel;
+  const e=data.events.find(x=>x.id===id);
+  if(e){
+    if(mode==="one" && key){
+      if(!Array.isArray(e.skip)) e.skip=[];
+      if(!e.skip.includes(key)) e.skip.push(key);
+      // 開始日そのものを消した場合、表示が残らないよう次の出現日へ起点をずらす
+      if(e.date===key){
+        const next=nextOccurrence(e, key);
+        if(next) e.date=next; // 次の出現日が無ければそのまま（全部skip済みなら表示されない）
+      }
+    }else{ // all
+      data.events=data.events.filter(x=>x.id!==id);
+    }
+  }
+  document.getElementById("repDelModal").classList.remove("show");
+  _repDel={id:null,key:null,after:null};
+  render();
+  if(typeof after==="function") after();
+}
+// 指定日より後の最初の出現日キーを返す（skip考慮）。無ければnull。
+function nextOccurrence(e, fromKey){
+  let d=new Date(fromKey+"T00:00:00");
+  for(let i=0;i<800;i++){
+    d.setDate(d.getDate()+1);
+    const k=dateKey(d);
+    if(e.repeatEnd && k>e.repeatEnd) return null;
+    if(occursOn(e,k)) return k;
+  }
+  return null;
 }
 
 // ======================================================================
