@@ -685,11 +685,32 @@
 
   .notes{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
   .nlab{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--cal-mid);font-weight:400;margin-bottom:11px}
-  .card-foot{display:flex;justify-content:flex-end;margin-top:16px}
+  .card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
   .meta.due{color:var(--cal-mid);margin-top:2px}
   .cat-due{font-size:11px;color:var(--cal-mid);letter-spacing:.06em;font-family:"Roboto Mono",monospace;font-weight:300}
   .del-g{font-size:10px;color:var(--ink-4);cursor:pointer;letter-spacing:.16em;text-transform:uppercase}
   .del-g:hover{color:var(--cal-high)}
+  /* メモボタン（タスク/プロジェクト共通） */
+  .memo-btn{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--ink-3);cursor:pointer;
+    letter-spacing:.1em;transition:.18s;font-weight:400;-webkit-tap-highlight-color:transparent}
+  .memo-btn:hover{color:var(--ink)}
+  .memo-btn .memo-badge{font-style:normal;background:var(--cat,#e0913f);color:#1a1208;font-size:9px;font-weight:600;
+    min-width:15px;height:15px;line-height:15px;text-align:center;border-radius:8px;padding:0 4px;font-family:"Roboto Mono",monospace}
+  .cat-memo{margin-left:4px}
+  .cat-memo .memo-badge{background:var(--ink-3);color:var(--bg-0,#16110b)}
+  /* メモモーダル */
+  .memo-modal{max-width:560px;max-height:calc(100vh - 40px);display:flex;flex-direction:column}
+  .memo-sub{font-size:13px;color:var(--ink);font-weight:400;margin:-8px 0 16px;letter-spacing:.02em}
+  .memo-new-wrap{margin-bottom:16px;flex:0 0 auto}
+  .memo-list{overflow-y:auto;flex:1 1 auto;display:flex;flex-direction:column;gap:12px;min-height:40px}
+  .memo-empty{font-size:12px;color:var(--ink-4);line-height:1.7;font-weight:300;padding:8px 2px}
+  .memo-entry{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(0,0,0,.18)}
+  .memo-entry .me-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .memo-entry .me-date{font-size:10.5px;color:var(--ink-3);font-family:"Roboto Mono",monospace;letter-spacing:.04em}
+  .memo-entry .me-del{font-size:12px;color:var(--ink-4);cursor:pointer;padding:2px 5px;transition:.16s}
+  .memo-entry .me-del:hover{color:var(--cal-high)}
+  .memo-entry .me-text{font-size:13.5px;color:var(--ink);line-height:1.7;font-weight:300;white-space:pre-wrap;word-break:break-word;outline:none;min-height:1.4em}
+  .memo-entry .me-text:focus{color:#fff}
 
   /* ---- goal due (タイトル下インライン) ---- */
   .goal-due-inline{display:flex;align-items:center;gap:8px;margin-top:5px;position:relative}
@@ -1287,6 +1308,24 @@
   </div>
 </div>
 
+<!-- メモ（日付付き・タスク/プロジェクトに溜める） -->
+<div class="modal-bg" id="memoModal">
+  <div class="modal glass memo-modal">
+    <h4 id="memoModalTitle">メモ</h4>
+    <div class="memo-sub" id="memoModalSub"></div>
+    <div class="memo-new-wrap">
+      <textarea id="memoNew" class="note" placeholder="会議メモ、打ち合わせ内容、思いついたこと…&#10;保存すると日付が自動で付きます。" style="min-height:90px"></textarea>
+      <div class="row" style="margin-top:8px;justify-content:flex-end">
+        <button class="btn solid" onclick="addMemo()">＋ メモを保存</button>
+      </div>
+    </div>
+    <div class="memo-list" id="memoList"></div>
+    <div class="row" style="margin-top:16px;justify-content:flex-end">
+      <button class="btn" onclick="closeMemos()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const STORE="progressDeck.v2";
 const MSGS=[
@@ -1368,10 +1407,12 @@ function migrate(d){
   if(!Array.isArray(d.cats)) d.cats = d.cats ? Object.values(d.cats) : [];
   d.cats.forEach(c=>{
     if(!Array.isArray(c.goals)) c.goals = c.goals ? Object.values(c.goals) : [];
+    if(!Array.isArray(c.memos)) c.memos = c.memos ? Object.values(c.memos) : [];   // プロジェクト直下メモ
     const inherited=c.cal||'mid';
     c.goals.forEach(g=>{
       if(!g.cal)g.cal=inherited;
       if(!Array.isArray(g.checks)) g.checks = g.checks ? Object.values(g.checks) : [];
+      if(!Array.isArray(g.memos)) g.memos = g.memos ? Object.values(g.memos) : [];   // タスクのメモ（会議メモ等）
     });
     delete c.cal;
   });
@@ -2173,6 +2214,7 @@ function catHTML(c,index,total){
       <div class="cat-tally">${tally}</div>
       <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
       <span class="add-goal-h" onclick="addGoal('${c.id}')">+ 目標</span>
+      <span class="memo-btn cat-memo" onclick="openMemos('cat','${c.id}')">📝 メモ${memoCount(c)?`<i class="memo-badge">${memoCount(c)}</i>`:""}</span>
       <span class="del" onclick="delCat('${c.id}')">DELETE</span>
     </div>
     <div class="cards" data-cat="${c.id}">
@@ -2242,7 +2284,10 @@ function goalHTML(cid,g){
       ${checks}
     </div>
     <span class="add-check" onclick="addCheck('${cid}','${g.id}')">+ ステップを追加</span>
-    <div class="card-foot"><span class="del-g" onclick="delGoal('${cid}','${g.id}')">REMOVE</span></div>
+    <div class="card-foot">
+      <span class="memo-btn" onclick="openMemos('goal','${cid}','${g.id}')">📝 メモ${memoCount(g)?`<i class="memo-badge">${memoCount(g)}</i>`:""}</span>
+      <span class="del-g" onclick="delGoal('${cid}','${g.id}')">REMOVE</span>
+    </div>
   </div>`;
 }
 
@@ -2254,8 +2299,87 @@ function setProg(cid,gid,v,el){const[,g]=findG(cid,gid);g.prog=+v;el.style.setPr
   card.querySelector('.meta').textContent=v>=100?'■ COMPLETE':'▸ IN PROGRESS';card.classList.toggle('done',v>=100);
   renderMetrics();save()}
 function renameGoal(cid,gid,t){const[,g]=findG(cid,gid);g.name=t;save()}
+
+// ======================================================================
+// ====== メモ（日付付き・タスク/プロジェクトに束ねて溜める） ======
+//  scope:"goal" は cid+gid のタスク、scope:"cat" は cid のプロジェクト直下。
+//  各メモ: {id, ts(作成時刻ms), text}
+// ======================================================================
+let _memoCtx={scope:null, cid:null, gid:null};
+function memoTarget(scope,cid,gid){
+  if(scope==="cat"){ return data.cats.find(c=>c.id===cid)||null; }
+  const c=data.cats.find(x=>x.id===cid); if(!c)return null;
+  return c.goals.find(x=>x.id===gid)||null;
+}
+function openMemos(scope,cid,gid){
+  _memoCtx={scope,cid,gid};
+  const t=memoTarget(scope,cid,gid); if(!t)return;
+  if(!Array.isArray(t.memos)) t.memos=[];
+  document.getElementById("memoModalTitle").textContent =
+    (scope==="cat"?"プロジェクトメモ":"タスクメモ");
+  document.getElementById("memoModalSub").textContent = t.name||"";
+  renderMemoList();
+  document.getElementById("memoModal").classList.add("show");
+  // 新規入力欄をクリア
+  const ta=document.getElementById("memoNew"); if(ta){ ta.value=""; }
+}
+function closeMemos(){ document.getElementById("memoModal").classList.remove("show"); _memoCtx={scope:null,cid:null,gid:null}; }
+function fmtMemoDate(ts){
+  const d=new Date(ts);
+  const D=["日","月","火","水","木","金","土"][d.getDay()];
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}(${D}) ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+function renderMemoList(){
+  const {scope,cid,gid}=_memoCtx;
+  const t=memoTarget(scope,cid,gid);
+  const box=document.getElementById("memoList");
+  if(!t || !box) return;
+  const memos=(t.memos||[]).slice().sort((a,b)=>b.ts-a.ts);  // 新しい順
+  if(!memos.length){
+    box.innerHTML=`<div class="memo-empty">まだメモはありません。下の欄に書いて「保存」すると、日付つきでここに溜まっていきます。</div>`;
+    return;
+  }
+  box.innerHTML=memos.map(m=>`
+    <div class="memo-entry" data-id="${m.id}">
+      <div class="me-head">
+        <span class="me-date">${fmtMemoDate(m.ts)}</span>
+        <span class="me-del" title="削除" onclick="delMemo('${m.id}')">✕</span>
+      </div>
+      <div class="me-text" contenteditable spellcheck="false"
+           oninput="editMemo('${m.id}',this.textContent)">${esc(m.text)}</div>
+    </div>`).join("");
+}
+function addMemo(){
+  const {scope,cid,gid}=_memoCtx;
+  const t=memoTarget(scope,cid,gid); if(!t)return;
+  const ta=document.getElementById("memoNew");
+  const text=(ta.value||"").trim();
+  if(!text){ ta.focus(); return; }
+  if(!Array.isArray(t.memos)) t.memos=[];
+  t.memos.push({id:uid(), ts:Date.now(), text});
+  ta.value="";
+  save();
+  renderMemoList();
+  renderBoard();   // バッジ件数を更新
+}
+function editMemo(id,text){
+  const {scope,cid,gid}=_memoCtx;
+  const t=memoTarget(scope,cid,gid); if(!t)return;
+  const m=(t.memos||[]).find(x=>x.id===id);
+  if(m){ m.text=text; save(); }
+}
+function delMemo(id){
+  const {scope,cid,gid}=_memoCtx;
+  const t=memoTarget(scope,cid,gid); if(!t)return;
+  if(!confirm("このメモを削除しますか？"))return;
+  t.memos=(t.memos||[]).filter(x=>x.id!==id);
+  save();
+  renderMemoList();
+  renderBoard();
+}
+function memoCount(t){ return (t&&Array.isArray(t.memos))?t.memos.length:0; }
 function setNote(cid,gid,t){const[,g]=findG(cid,gid);g.note=t;save()}
-function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[]});render()}
+function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[],memos:[]});render()}
 function delGoal(cid,gid){const c=data.cats.find(x=>x.id===cid);c.goals=c.goals.filter(x=>x.id!==gid);render()}
 function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}else{unbumpAchieve(g.checks[i].t);}render()}
 function editCheck(cid,gid,i,t){const[,g]=findG(cid,gid);g.checks[i].t=t;save()}
@@ -2532,7 +2656,7 @@ function _duePickerOutside(e){
 // category modal
 function openCat(){document.getElementById("catModal").classList.add("show");document.getElementById("catName").focus()}
 function closeCat(){document.getElementById("catModal").classList.remove("show");document.getElementById("catName").value=""}
-function addCat(){const n=document.getElementById("catName").value.trim();if(!n)return;data.cats.push({id:uid(),name:n,goals:[]});closeCat();render()}
+function addCat(){const n=document.getElementById("catName").value.trim();if(!n)return;data.cats.push({id:uid(),name:n,goals:[],memos:[]});closeCat();render()}
 document.getElementById("catName").addEventListener("keydown",e=>{if(e.key==="Enter")addCat()});
 
 // backup
