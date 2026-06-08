@@ -212,7 +212,34 @@
   .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
     background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
 
-  .wrap{max-width:1240px;margin:0 auto;position:relative;z-index:2}
+  .wrap{max-width:1240px;margin:0 auto;position:relative;z-index:2;
+    transition:transform .42s cubic-bezier(.4,0,.2,1), max-width .42s cubic-bezier(.4,0,.2,1)}
+
+  /* ===== スプリットスクリーン（メモを横に並べる） =====
+     body.split-open のとき本体(.wrap)を左へ寄せ、右にメモパネル分の幅を空ける。
+     左の本体はそのまま操作できる（パネルは別レイヤー）。 */
+  :root{--split-w:clamp(380px,38vw,560px);}
+  body.split-open .wrap{
+    max-width:none;
+    margin:0;
+    width:calc(100vw - var(--split-w) - 48px);
+    margin-left:24px;
+    padding-right:0;
+  }
+  /* メモパネル（右からスライドイン） */
+  .split-panel{position:fixed;top:0;right:0;height:100vh;width:var(--split-w);z-index:60;
+    transform:translateX(100%);transition:transform .42s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;
+    background:rgba(14,11,8,.92);backdrop-filter:blur(20px);
+    border-left:1px solid var(--line-2);box-shadow:-24px 0 60px rgba(0,0,0,.5)}
+  body.split-open .split-panel{transform:translateX(0)}
+  .split-panel .sp-inner{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;padding:22px 22px 18px}
+  /* スマホ・狭い画面：本体は動かさず、パネルが全画面 */
+  @media (max-width:880px){
+    body.split-open .wrap{max-width:100%;width:auto;margin:0 auto;transform:none}
+    :root{--split-w:100vw}
+    .split-panel{width:100vw;border-left:none}
+  }
 
   /* ============ glass — barely there, no candy glow ============ */
   .glass{position:relative;background:var(--panel);
@@ -698,19 +725,94 @@
     min-width:15px;height:15px;line-height:15px;text-align:center;border-radius:8px;padding:0 4px;font-family:"Roboto Mono",monospace}
   .cat-memo{margin-left:4px}
   .cat-memo .memo-badge{background:var(--ink-3);color:var(--bg-0,#16110b)}
-  /* メモモーダル */
-  .memo-modal{max-width:560px;max-height:calc(100vh - 40px);display:flex;flex-direction:column}
-  .memo-sub{font-size:13px;color:var(--ink);font-weight:400;margin:-8px 0 16px;letter-spacing:.02em}
-  .memo-new-wrap{margin-bottom:16px;flex:0 0 auto}
-  .memo-list{overflow-y:auto;flex:1 1 auto;display:flex;flex-direction:column;gap:12px;min-height:40px}
-  .memo-empty{font-size:12px;color:var(--ink-4);line-height:1.7;font-weight:300;padding:8px 2px}
-  .memo-entry{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(0,0,0,.18)}
-  .memo-entry .me-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
-  .memo-entry .me-date{font-size:10.5px;color:var(--ink-3);font-family:"Roboto Mono",monospace;letter-spacing:.04em}
-  .memo-entry .me-del{font-size:12px;color:var(--ink-4);cursor:pointer;padding:2px 5px;transition:.16s}
-  .memo-entry .me-del:hover{color:var(--cal-high)}
-  .memo-entry .me-text{font-size:13.5px;color:var(--ink);line-height:1.7;font-weight:300;white-space:pre-wrap;word-break:break-word;outline:none;min-height:1.4em}
-  .memo-entry .me-text:focus{color:#fff}
+  /* メモモーダル（議事録向けに大きく） */
+  .modal.memo-modal{max-width:920px;width:100%;height:calc(100vh - 48px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;padding:24px 26px;overflow:hidden}
+  .memo-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+  .memo-modal-head h4{margin:0}
+  .memo-sub{font-size:14px;color:var(--ink);font-weight:400;margin-top:4px;letter-spacing:.02em}
+  .memo-x{font-size:11px;padding:8px 13px;flex:0 0 auto}
+  .memo-list{overflow-y:auto;flex:1 1 auto;display:flex;flex-direction:column;gap:10px;min-height:40px}
+  .memo-empty{font-size:13px;color:var(--ink-4);line-height:1.8;font-weight:300;padding:24px 4px;text-align:center}
+  /* 一覧ビュー */
+  .memo-listview{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+  .memo-listview-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex:0 0 auto}
+  .mlb-label{font-size:11.5px;color:var(--ink-4);font-weight:300;letter-spacing:.03em}
+  /* 議事録カード */
+  .memo-card{border:1px solid var(--line);border-radius:13px;padding:15px 17px;background:rgba(0,0,0,.2);
+    cursor:pointer;transition:.16s;flex:0 0 auto}
+  .memo-card:hover{border-color:var(--line-2);background:rgba(255,255,255,.03)}
+  .memo-card .mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .memo-card .mc-title{font-size:15px;color:var(--ink);font-weight:500;line-height:1.4;letter-spacing:.01em}
+  .memo-card .mc-del{font-size:13px;color:var(--ink-4);cursor:pointer;padding:1px 6px;transition:.16s;flex:0 0 auto}
+  .memo-card .mc-del:hover{color:var(--cal-high)}
+  .memo-card .mc-date{font-size:10.5px;color:var(--ink-3);font-family:"Roboto Mono",monospace;letter-spacing:.04em;margin-top:5px}
+  .memo-card .mc-preview{font-size:12.5px;color:var(--ink-3);line-height:1.6;font-weight:300;margin-top:9px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* エディタビュー */
+  .memo-editorview{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+  .memo-editor-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex:0 0 auto}
+  .memo-editor-bar .btn{font-size:11px;padding:8px 13px}
+  .memo-editor-bar .ed-del{color:var(--ink-3)}
+  .memo-editor-bar .ed-del:hover{color:var(--cal-high);border-color:var(--cal-high)}
+  .memo-editor-date{font-size:10.5px;color:var(--ink-3);font-family:"Roboto Mono",monospace;letter-spacing:.03em;text-align:center;flex:1 1 auto}
+  .memo-editor-title{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:11px;
+    color:var(--ink);padding:13px 15px;font-size:17px;font-weight:500;margin-bottom:12px;font-family:inherit;flex:0 0 auto;letter-spacing:.01em}
+  .memo-editor-title:focus{outline:none;border-color:var(--line-2)}
+  .memo-editor-title::placeholder{color:var(--ink-4);font-weight:400}
+  .memo-editor-body{width:100%;flex:1 1 auto;min-height:200px;resize:none;background:rgba(0,0,0,.25);
+    border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:16px 17px;font-size:14.5px;
+    line-height:1.85;font-family:inherit;font-weight:300;letter-spacing:.01em}
+  .memo-editor-body:focus{outline:none;border-color:var(--line-2)}
+  .memo-editor-body::placeholder{color:var(--ink-4);line-height:1.85}
+  .memo-editor-foot{font-size:10px;color:var(--ink-4);text-align:right;margin-top:8px;letter-spacing:.06em;flex:0 0 auto;font-weight:300}
+  /* メモ/ファイル タブ */
+  .mf-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:0;flex:0 0 auto}
+  .mf-tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-3);
+    font-size:12.5px;padding:8px 14px 10px;cursor:pointer;letter-spacing:.04em;transition:.16s;font-family:inherit;font-weight:400}
+  .mf-tab:hover{color:var(--ink-2)}
+  .mf-tab.active{color:var(--ink);border-bottom-color:var(--cat,#e0913f)}
+  .mf-pane{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+  /* ファイル追加 */
+  .file-add-wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;flex:0 0 auto}
+  .file-add-btn{cursor:pointer;display:inline-flex;align-items:center}
+  .file-hint{font-size:10.5px;color:var(--ink-4);font-weight:300;letter-spacing:.02em}
+  /* ファイルエントリ */
+  .file-entry{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;
+    padding:11px 12px;background:rgba(0,0,0,.18);transition:.16s}
+  .file-entry:hover{border-color:var(--line-2)}
+  .file-entry .fe-main{display:flex;align-items:center;gap:11px;flex:1 1 auto;min-width:0;cursor:pointer}
+  .file-entry .fe-icon{font-size:20px;flex:0 0 auto;line-height:1}
+  .file-entry .fe-info{min-width:0}
+  .file-entry .fe-name{font-size:13px;color:var(--ink);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-entry .fe-meta{font-size:10px;color:var(--ink-4);font-family:"Roboto Mono",monospace;margin-top:2px}
+  .file-entry .fe-actions{display:flex;gap:3px;flex:0 0 auto}
+  .file-entry .fe-act{font-size:13px;color:var(--ink-3);cursor:pointer;padding:4px 6px;border-radius:6px;transition:.16s;-webkit-tap-highlight-color:transparent}
+  .file-entry .fe-act:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+  .file-entry .fe-act.del:hover{color:var(--cal-high)}
+  /* プレビューモーダル */
+  .modal.preview-modal{max-width:760px;width:100%;max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+  .preview-modal .pv-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+  .preview-modal .pv-head h4{margin:0;font-size:13px;letter-spacing:.04em;text-transform:none;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
+  .preview-modal .pv-head-actions{display:flex;gap:8px;flex:0 0 auto}
+  .preview-modal .pv-head-actions .btn{font-size:11px;padding:8px 12px}
+  .pv-body{flex:1 1 auto;overflow:auto;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:12px;padding:18px;min-height:120px}
+  .pv-loading,.pv-note{color:var(--ink-3);font-size:13px;font-weight:300;line-height:1.7;text-align:center;padding:30px 12px}
+  .pv-text{white-space:pre-wrap;word-break:break-word;font-family:"Roboto Mono",monospace;font-size:12.5px;
+    color:var(--ink);line-height:1.7;margin:0}
+  .pv-img{max-width:100%;height:auto;display:block;margin:0 auto;border-radius:8px}
+  .pv-frame{width:100%;height:70vh;border:none;border-radius:8px;background:#fff}
+  .pv-doc{color:var(--ink);font-size:14px;line-height:1.85;font-weight:300}
+  .pv-doc h1,.pv-doc h2,.pv-doc h3{color:#fff;font-weight:500;margin:1em 0 .5em;line-height:1.4}
+  .pv-doc h1{font-size:1.5em}.pv-doc h2{font-size:1.3em}.pv-doc h3{font-size:1.12em}
+  .pv-doc p{margin:.7em 0}
+  .pv-doc ul,.pv-doc ol{margin:.7em 0;padding-left:1.5em}
+  .pv-doc li{margin:.3em 0}
+  .pv-doc table{border-collapse:collapse;margin:1em 0;width:100%}
+  .pv-doc td,.pv-doc th{border:1px solid var(--line-2);padding:7px 10px;font-size:13px}
+  .pv-doc strong{color:#fff;font-weight:500}
+  .pv-doc a{color:var(--cal-low)}
+  .pv-doc img{max-width:100%;height:auto}
 
   /* ---- goal due (タイトル下インライン) ---- */
   .goal-due-inline{display:flex;align-items:center;gap:8px;margin-top:5px;position:relative}
@@ -1308,21 +1410,66 @@
   </div>
 </div>
 
-<!-- メモ（日付付き・タスク/プロジェクトに溜める） -->
-<div class="modal-bg" id="memoModal">
-  <div class="modal glass memo-modal">
-    <h4 id="memoModalTitle">メモ</h4>
-    <div class="memo-sub" id="memoModalSub"></div>
-    <div class="memo-new-wrap">
-      <textarea id="memoNew" class="note" placeholder="会議メモ、打ち合わせ内容、思いついたこと…&#10;保存すると日付が自動で付きます。" style="min-height:90px"></textarea>
-      <div class="row" style="margin-top:8px;justify-content:flex-end">
-        <button class="btn solid" onclick="addMemo()">＋ メモを保存</button>
+<!-- メモ＆ファイル（スプリットスクリーンで横に並ぶ） -->
+<div class="split-panel" id="memoModal">
+  <div class="sp-inner glass">
+    <div class="memo-modal-head">
+      <div>
+        <h4 id="memoModalTitle">メモ</h4>
+        <div class="memo-sub" id="memoModalSub"></div>
+      </div>
+      <button class="btn memo-x" onclick="closeMemos()">✕ 閉じる</button>
+    </div>
+    <div class="mf-tabs">
+      <button class="mf-tab active" data-tab="memo" onclick="switchMemoTab('memo')">📝 議事録・メモ</button>
+      <button class="mf-tab" data-tab="file" onclick="switchMemoTab('file')">📎 ファイル</button>
+    </div>
+
+    <div class="mf-pane" id="pane-memo">
+      <!-- 一覧ビュー -->
+      <div class="memo-listview" id="memoListView">
+        <div class="memo-listview-bar">
+          <span class="mlb-label">打ち合わせの議事録を時系列で保存できます</span>
+          <button class="btn solid" onclick="newMemo()">＋ 新規</button>
+        </div>
+        <div class="memo-list" id="memoList"></div>
+      </div>
+      <!-- エディタビュー -->
+      <div class="memo-editorview" id="memoEditorView" style="display:none">
+        <div class="memo-editor-bar">
+          <button class="btn" onclick="closeMemoEditor()">‹ 一覧へ戻る</button>
+          <span class="memo-editor-date" id="memoEditorDate"></span>
+          <button class="btn ed-del" onclick="delMemoFromEditor()">削除</button>
+        </div>
+        <input id="memoEditorTitle" class="memo-editor-title" placeholder="タイトル（例：6/8 定例会議）" oninput="saveMemoEditor()">
+        <textarea id="memoEditorBody" class="memo-editor-body" placeholder="ここに議事録を貼り付け／記入してください。長文もそのまま貼れます。&#10;&#10;・決定事項&#10;・TODO&#10;・次回までの宿題　など" oninput="saveMemoEditor()"></textarea>
+        <div class="memo-editor-foot">入力は自動で保存されます</div>
       </div>
     </div>
-    <div class="memo-list" id="memoList"></div>
-    <div class="row" style="margin-top:16px;justify-content:flex-end">
-      <button class="btn" onclick="closeMemos()">閉じる</button>
+
+    <div class="mf-pane" id="pane-file" style="display:none">
+      <div class="file-add-wrap">
+        <label class="btn solid file-add-btn">＋ ファイルを追加
+          <input type="file" id="fileInput" style="display:none" onchange="onFilePick(this)">
+        </label>
+        <span class="file-hint">テキスト / Word / PDF / 画像（1ファイル500KBまで・全端末同期）</span>
+      </div>
+      <div class="memo-list" id="fileList"></div>
     </div>
+  </div>
+</div>
+
+<!-- ファイルプレビュー -->
+<div class="modal-bg" id="previewModal">
+  <div class="modal glass preview-modal">
+    <div class="pv-head">
+      <h4 id="previewTitle">プレビュー</h4>
+      <div class="pv-head-actions">
+        <button class="btn" id="previewDownload">⬇ ダウンロード</button>
+        <button class="btn" onclick="closePreview()">閉じる</button>
+      </div>
+    </div>
+    <div class="pv-body" id="previewBody"></div>
   </div>
 </div>
 
@@ -1408,11 +1555,15 @@ function migrate(d){
   d.cats.forEach(c=>{
     if(!Array.isArray(c.goals)) c.goals = c.goals ? Object.values(c.goals) : [];
     if(!Array.isArray(c.memos)) c.memos = c.memos ? Object.values(c.memos) : [];   // プロジェクト直下メモ
+    c.memos.forEach(m=>{ if(typeof m.title!=="string") m.title=""; if(!("edited" in m)) m.edited=null; });
+    if(!Array.isArray(c.files)) c.files = c.files ? Object.values(c.files) : [];   // プロジェクト直下ファイル
     const inherited=c.cal||'mid';
     c.goals.forEach(g=>{
       if(!g.cal)g.cal=inherited;
       if(!Array.isArray(g.checks)) g.checks = g.checks ? Object.values(g.checks) : [];
       if(!Array.isArray(g.memos)) g.memos = g.memos ? Object.values(g.memos) : [];   // タスクのメモ（会議メモ等）
+      g.memos.forEach(m=>{ if(typeof m.title!=="string") m.title=""; if(!("edited" in m)) m.edited=null; });
+      if(!Array.isArray(g.files)) g.files = g.files ? Object.values(g.files) : [];   // タスクのファイル
     });
     delete c.cal;
   });
@@ -2214,7 +2365,7 @@ function catHTML(c,index,total){
       <div class="cat-tally">${tally}</div>
       <span class="count">${c.goals.length} GOAL${c.goals.length!==1?'S':''}</span>
       <span class="add-goal-h" onclick="addGoal('${c.id}')">+ 目標</span>
-      <span class="memo-btn cat-memo" onclick="openMemos('cat','${c.id}')">📝 メモ${memoCount(c)?`<i class="memo-badge">${memoCount(c)}</i>`:""}</span>
+      <span class="memo-btn cat-memo" onclick="openMemos('cat','${c.id}')">📝 メモ・ファイル${(memoCount(c)+fileCount(c))?`<i class="memo-badge">${memoCount(c)+fileCount(c)}</i>`:""}</span>
       <span class="del" onclick="delCat('${c.id}')">DELETE</span>
     </div>
     <div class="cards" data-cat="${c.id}">
@@ -2285,7 +2436,7 @@ function goalHTML(cid,g){
     </div>
     <span class="add-check" onclick="addCheck('${cid}','${g.id}')">+ ステップを追加</span>
     <div class="card-foot">
-      <span class="memo-btn" onclick="openMemos('goal','${cid}','${g.id}')">📝 メモ${memoCount(g)?`<i class="memo-badge">${memoCount(g)}</i>`:""}</span>
+      <span class="memo-btn" onclick="openMemos('goal','${cid}','${g.id}')">📝 メモ・ファイル${(memoCount(g)+fileCount(g))?`<i class="memo-badge">${memoCount(g)+fileCount(g)}</i>`:""}</span>
       <span class="del-g" onclick="delGoal('${cid}','${g.id}')">REMOVE</span>
     </div>
   </div>`;
@@ -2319,16 +2470,46 @@ function openMemos(scope,cid,gid){
     (scope==="cat"?"プロジェクトメモ":"タスクメモ");
   document.getElementById("memoModalSub").textContent = t.name||"";
   renderMemoList();
-  document.getElementById("memoModal").classList.add("show");
-  // 新規入力欄をクリア
-  const ta=document.getElementById("memoNew"); if(ta){ ta.value=""; }
+  renderFileList();
+  switchMemoTab("memo");
+  // 必ず一覧から開始
+  _editingMemoId=null;
+  const ev=document.getElementById("memoEditorView"), lv=document.getElementById("memoListView");
+  if(ev) ev.style.display="none";
+  if(lv) lv.style.display="flex";
+  document.body.classList.add("split-open");
 }
-function closeMemos(){ document.getElementById("memoModal").classList.remove("show"); _memoCtx={scope:null,cid:null,gid:null}; }
+function closeMemos(){ saveMemoEditor(); document.body.classList.remove("split-open"); _memoCtx={scope:null,cid:null,gid:null}; }
+function switchMemoTab(tab){
+  document.querySelectorAll("#memoModal .mf-tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+  document.getElementById("pane-memo").style.display = tab==="memo"?"":"none";
+  document.getElementById("pane-file").style.display = tab==="file"?"":"none";
+}
 function fmtMemoDate(ts){
   const d=new Date(ts);
   const D=["日","月","火","水","木","金","土"][d.getDay()];
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}(${D}) ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
+function fmtMemoDateShort(ts){
+  const d=new Date(ts);
+  const D=["日","月","火","水","木","金","土"][d.getDay()];
+  return `${d.getMonth()+1}/${d.getDate()}(${D})`;
+}
+// 本文の冒頭からタイトルを自動生成（タイトル未設定時の一覧表示用）
+function memoAutoTitle(m){
+  if(m.title && m.title.trim()) return m.title.trim();
+  const first=(m.text||"").split("\n").map(s=>s.trim()).find(s=>s);
+  return first ? (first.length>40?first.slice(0,40)+"…":first) : "(無題の議事録)";
+}
+function memoBodyPreview(m){
+  const lines=(m.text||"").split("\n").map(s=>s.trim()).filter(s=>s);
+  // タイトル相当の1行目を除いた残りをプレビューに
+  const rest=(m.title && m.title.trim()) ? lines : lines.slice(1);
+  const txt=rest.join("  ");
+  return txt ? (txt.length>120?txt.slice(0,120)+"…":txt) : "";
+}
+
+// ---- 一覧モード ----
 function renderMemoList(){
   const {scope,cid,gid}=_memoCtx;
   const t=memoTarget(scope,cid,gid);
@@ -2336,50 +2517,232 @@ function renderMemoList(){
   if(!t || !box) return;
   const memos=(t.memos||[]).slice().sort((a,b)=>b.ts-a.ts);  // 新しい順
   if(!memos.length){
-    box.innerHTML=`<div class="memo-empty">まだメモはありません。下の欄に書いて「保存」すると、日付つきでここに溜まっていきます。</div>`;
+    box.innerHTML=`<div class="memo-empty">まだ議事録はありません。「＋ 新規」から、打ち合わせの議事録を貼り付け／記入できます。長文もそのまま貼れます。</div>`;
     return;
   }
-  box.innerHTML=memos.map(m=>`
-    <div class="memo-entry" data-id="${m.id}">
-      <div class="me-head">
-        <span class="me-date">${fmtMemoDate(m.ts)}</span>
-        <span class="me-del" title="削除" onclick="delMemo('${m.id}')">✕</span>
+  box.innerHTML=memos.map(m=>{
+    const prev=memoBodyPreview(m);
+    return `<div class="memo-card" onclick="openMemoEditor('${m.id}')">
+      <div class="mc-top">
+        <div class="mc-title">${esc(memoAutoTitle(m))}</div>
+        <span class="mc-del" title="削除" onclick="event.stopPropagation();delMemo('${m.id}')">✕</span>
       </div>
-      <div class="me-text" contenteditable spellcheck="false"
-           oninput="editMemo('${m.id}',this.textContent)">${esc(m.text)}</div>
-    </div>`).join("");
+      <div class="mc-date">${fmtMemoDate(m.ts)}${m.edited?` · 編集 ${fmtMemoDateShort(m.edited)}`:""}</div>
+      ${prev?`<div class="mc-preview">${esc(prev)}</div>`:""}
+    </div>`;
+  }).join("");
 }
-function addMemo(){
+
+// ---- エディタモード ----
+let _editingMemoId=null;
+function openMemoEditor(id){
+  _editingMemoId=id;
   const {scope,cid,gid}=_memoCtx;
   const t=memoTarget(scope,cid,gid); if(!t)return;
-  const ta=document.getElementById("memoNew");
-  const text=(ta.value||"").trim();
-  if(!text){ ta.focus(); return; }
-  if(!Array.isArray(t.memos)) t.memos=[];
-  t.memos.push({id:uid(), ts:Date.now(), text});
-  ta.value="";
-  save();
+  const m=(t.memos||[]).find(x=>x.id===id); if(!m)return;
+  document.getElementById("memoEditorDate").textContent=fmtMemoDate(m.ts)+(m.edited?`　（最終編集 ${fmtMemoDate(m.edited)}）`:"");
+  document.getElementById("memoEditorTitle").value=m.title||"";
+  document.getElementById("memoEditorBody").value=m.text||"";
+  document.getElementById("memoListView").style.display="none";
+  document.getElementById("memoEditorView").style.display="flex";
+}
+function closeMemoEditor(){
+  saveMemoEditor();
+  _editingMemoId=null;
+  document.getElementById("memoEditorView").style.display="none";
+  document.getElementById("memoListView").style.display="flex";
   renderMemoList();
-  renderBoard();   // バッジ件数を更新
 }
-function editMemo(id,text){
+function saveMemoEditor(){
+  if(!_editingMemoId)return;
   const {scope,cid,gid}=_memoCtx;
   const t=memoTarget(scope,cid,gid); if(!t)return;
-  const m=(t.memos||[]).find(x=>x.id===id);
-  if(m){ m.text=text; save(); }
+  const m=(t.memos||[]).find(x=>x.id===_editingMemoId); if(!m)return;
+  const newTitle=document.getElementById("memoEditorTitle").value;
+  const newBody=document.getElementById("memoEditorBody").value;
+  if(m.title!==newTitle || m.text!==newBody){
+    m.title=newTitle; m.text=newBody; m.edited=Date.now();
+    save(); renderBoard();
+  }
+}
+// 新規作成してすぐエディタを開く
+function newMemo(){
+  const {scope,cid,gid}=_memoCtx;
+  const t=memoTarget(scope,cid,gid); if(!t)return;
+  if(!Array.isArray(t.memos)) t.memos=[];
+  const m={id:uid(), ts:Date.now(), title:"", text:"", edited:null};
+  t.memos.push(m);
+  save(); renderBoard();
+  openMemoEditor(m.id);
+  setTimeout(()=>{ const ti=document.getElementById("memoEditorTitle"); if(ti) ti.focus(); },50);
 }
 function delMemo(id){
   const {scope,cid,gid}=_memoCtx;
   const t=memoTarget(scope,cid,gid); if(!t)return;
-  if(!confirm("このメモを削除しますか？"))return;
+  if(!confirm("この議事録を削除しますか？"))return;
   t.memos=(t.memos||[]).filter(x=>x.id!==id);
-  save();
+  save(); renderMemoList(); renderBoard();
+}
+function delMemoFromEditor(){
+  if(!_editingMemoId)return;
+  const id=_editingMemoId;
+  if(!confirm("この議事録を削除しますか？"))return;
+  const {scope,cid,gid}=_memoCtx;
+  const t=memoTarget(scope,cid,gid); if(!t)return;
+  t.memos=(t.memos||[]).filter(x=>x.id!==id);
+  _editingMemoId=null;
+  save(); renderBoard();
+  document.getElementById("memoEditorView").style.display="none";
+  document.getElementById("memoListView").style.display="flex";
   renderMemoList();
-  renderBoard();
 }
 function memoCount(t){ return (t&&Array.isArray(t.memos))?t.memos.length:0; }
+function fileCount(t){ return (t&&Array.isArray(t.files))?t.files.length:0; }
+
+// ======================================================================
+// ====== ファイル置き場（全端末同期・小さめファイル中心） ======
+//  各ファイル: {id, name, type(mime), size, ts, data(base64)}
+//  Firebase同期を壊さないため 1ファイル上限を設ける。
+// ======================================================================
+const FILE_MAX_BYTES = 500*1024;   // 500KB/ファイル
+function fileTargetMemos(){ return memoTarget(_memoCtx.scope,_memoCtx.cid,_memoCtx.gid); }
+function humanSize(n){
+  if(n<1024) return n+" B";
+  if(n<1024*1024) return (n/1024).toFixed(1)+" KB";
+  return (n/1024/1024).toFixed(2)+" MB";
+}
+function fileExt(name){ const m=/\.([^.]+)$/.exec(name||""); return m?m[1].toLowerCase():""; }
+function fileIcon(name){
+  const e=fileExt(name);
+  if(["doc","docx"].includes(e)) return "📄";
+  if(["txt","md","markdown","rtf","csv"].includes(e)) return "📝";
+  if(e==="pdf") return "📕";
+  if(["png","jpg","jpeg","gif","webp","svg"].includes(e)) return "🖼";
+  return "📎";
+}
+// アップロード（input[type=file] から）
+function onFilePick(input){
+  const f=input.files && input.files[0];
+  if(!f){ return; }
+  if(f.size>FILE_MAX_BYTES){
+    alert(`このファイルは ${humanSize(f.size)} で、上限 ${humanSize(FILE_MAX_BYTES)} を超えています。\n全端末同期のため大きいファイルは置けません。テキストや軽いWordなど、軽量なファイルにしてください。`);
+    input.value=""; return;
+  }
+  const t=fileTargetMemos(); if(!t){ input.value=""; return; }
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const dataUrl=reader.result; // data:...;base64,xxxx
+    if(!Array.isArray(t.files)) t.files=[];
+    t.files.push({ id:uid(), name:f.name, type:f.type||"", size:f.size, ts:Date.now(), data:dataUrl });
+    save();
+    renderFileList();
+    renderBoard();
+    input.value="";
+  };
+  reader.onerror=()=>{ alert("ファイルを読み込めませんでした。"); input.value=""; };
+  reader.readAsDataURL(f);
+}
+function delFile(id){
+  const t=fileTargetMemos(); if(!t)return;
+  if(!confirm("このファイルを削除しますか？"))return;
+  t.files=(t.files||[]).filter(x=>x.id!==id);
+  save(); renderFileList(); renderBoard();
+}
+// data URL を Blob に変換してダウンロード
+function dataUrlToBlob(dataUrl){
+  const [head,b64]=dataUrl.split(",");
+  const mime=(/data:([^;]+)/.exec(head)||[])[1]||"application/octet-stream";
+  const bin=atob(b64); const len=bin.length; const arr=new Uint8Array(len);
+  for(let i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+function downloadFile(id){
+  const t=fileTargetMemos(); if(!t)return;
+  const f=(t.files||[]).find(x=>x.id===id); if(!f)return;
+  const blob=dataUrlToBlob(f.data);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=f.name; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function renderFileList(){
+  const t=fileTargetMemos();
+  const box=document.getElementById("fileList");
+  if(!t || !box) return;
+  const files=(t.files||[]).slice().sort((a,b)=>b.ts-a.ts);
+  if(!files.length){
+    box.innerHTML=`<div class="memo-empty">まだファイルはありません。上の「＋ ファイルを追加」から、テキストやWord（1ファイル ${humanSize(FILE_MAX_BYTES)} まで）を置けます。</div>`;
+    return;
+  }
+  box.innerHTML=files.map(f=>`
+    <div class="file-entry" data-id="${f.id}">
+      <div class="fe-main" onclick="previewFile('${f.id}')">
+        <span class="fe-icon">${fileIcon(f.name)}</span>
+        <div class="fe-info">
+          <div class="fe-name">${esc(f.name)}</div>
+          <div class="fe-meta">${humanSize(f.size)} · ${fmtMemoDate(f.ts)}</div>
+        </div>
+      </div>
+      <div class="fe-actions">
+        <span class="fe-act" title="プレビュー" onclick="previewFile('${f.id}')">👁</span>
+        <span class="fe-act" title="ダウンロード" onclick="downloadFile('${f.id}')">⬇</span>
+        <span class="fe-act del" title="削除" onclick="delFile('${f.id}')">✕</span>
+      </div>
+    </div>`).join("");
+}
+// ---- プレビュー ----
+let _mammothLoading=null;
+function loadMammoth(){
+  if(window.mammoth) return Promise.resolve(window.mammoth);
+  if(_mammothLoading) return _mammothLoading;
+  _mammothLoading=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js";
+    s.onload=()=>res(window.mammoth);
+    s.onerror=()=>rej(new Error("mammoth load failed"));
+    document.head.appendChild(s);
+  });
+  return _mammothLoading;
+}
+async function previewFile(id){
+  const t=fileTargetMemos(); if(!t)return;
+  const f=(t.files||[]).find(x=>x.id===id); if(!f)return;
+  const titleEl=document.getElementById("previewTitle");
+  const bodyEl=document.getElementById("previewBody");
+  titleEl.textContent=f.name;
+  document.getElementById("previewModal").classList.add("show");
+  bodyEl.innerHTML=`<div class="pv-loading">読み込み中…</div>`;
+  const ext=fileExt(f.name);
+  try{
+    if(["txt","md","markdown","csv","rtf","json","log"].includes(ext) || (f.type||"").startsWith("text/")){
+      const blob=dataUrlToBlob(f.data); const text=await blob.text();
+      bodyEl.innerHTML=`<pre class="pv-text"></pre>`;
+      bodyEl.querySelector(".pv-text").textContent=text;
+    }else if(["png","jpg","jpeg","gif","webp","svg"].includes(ext) || (f.type||"").startsWith("image/")){
+      bodyEl.innerHTML=`<img class="pv-img" src="${f.data}" alt="${esc(f.name)}">`;
+    }else if(ext==="pdf" || f.type==="application/pdf"){
+      bodyEl.innerHTML=`<iframe class="pv-frame" src="${f.data}"></iframe>`;
+    }else if(["docx"].includes(ext)){
+      const mammoth=await loadMammoth();
+      const blob=dataUrlToBlob(f.data);
+      const arrayBuffer=await blob.arrayBuffer();
+      const result=await mammoth.convertToHtml({arrayBuffer});
+      bodyEl.innerHTML=`<div class="pv-doc">${result.value||"<p>（本文が空、または抽出できませんでした）</p>"}</div>`;
+    }else if(ext==="doc"){
+      bodyEl.innerHTML=`<div class="pv-note">古い形式（.doc）はブラウザ内でプレビューできません。ダウンロードして開いてください。<br>※今後は .docx で保存するとプレビューできます。</div>`;
+    }else{
+      bodyEl.innerHTML=`<div class="pv-note">この形式（.${esc(ext||"?")}）はプレビューに対応していません。ダウンロードして開いてください。</div>`;
+    }
+  }catch(err){
+    bodyEl.innerHTML=`<div class="pv-note">プレビューを表示できませんでした。ダウンロードして開いてください。</div>`;
+  }
+  // ダウンロードボタンに現在のファイルを紐付け
+  const dl=document.getElementById("previewDownload");
+  if(dl) dl.onclick=()=>downloadFile(id);
+}
+function closePreview(){ document.getElementById("previewModal").classList.remove("show"); }
 function setNote(cid,gid,t){const[,g]=findG(cid,gid);g.note=t;save()}
-function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[],memos:[]});render()}
+function addGoal(cid){data.cats.find(x=>x.id===cid).goals.push({id:uid(),name:"新しい目標",cal:"mid",prog:0,note:"",checks:[],memos:[],files:[]});render()}
 function delGoal(cid,gid){const c=data.cats.find(x=>x.id===cid);c.goals=c.goals.filter(x=>x.id!==gid);render()}
 function toggleCheck(cid,gid,i){const[,g]=findG(cid,gid);const was=g.checks[i].on;g.checks[i].on=!was;if(!was){g.checks[i].active=false;bumpAchieve(g.checks[i].t);}else{unbumpAchieve(g.checks[i].t);}render()}
 function editCheck(cid,gid,i,t){const[,g]=findG(cid,gid);g.checks[i].t=t;save()}
@@ -2656,7 +3019,7 @@ function _duePickerOutside(e){
 // category modal
 function openCat(){document.getElementById("catModal").classList.add("show");document.getElementById("catName").focus()}
 function closeCat(){document.getElementById("catModal").classList.remove("show");document.getElementById("catName").value=""}
-function addCat(){const n=document.getElementById("catName").value.trim();if(!n)return;data.cats.push({id:uid(),name:n,goals:[],memos:[]});closeCat();render()}
+function addCat(){const n=document.getElementById("catName").value.trim();if(!n)return;data.cats.push({id:uid(),name:n,goals:[],memos:[],files:[]});closeCat();render()}
 document.getElementById("catName").addEventListener("keydown",e=>{if(e.key==="Enter")addCat()});
 
 // backup
