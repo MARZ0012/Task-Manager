@@ -915,7 +915,12 @@
   .up-label .k{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3)}
   .up-label .ic{font-size:21px;font-weight:100;color:var(--ink);letter-spacing:.04em}
   .up-label .up-big{font-size:26px;font-weight:200;letter-spacing:.14em;color:var(--ink);text-transform:uppercase}
-  .up-list{flex:1;display:flex;gap:0;overflow-x:auto}
+  .up-list{flex:1;display:flex;gap:0;overflow-x:auto;
+    scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+  .up-list::-webkit-scrollbar{height:8px}
+  .up-list::-webkit-scrollbar-track{background:rgba(0,0,0,.35);border-radius:0 0 var(--r) var(--r)}
+  .up-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+  .up-list::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.28);background-clip:padding-box}
   .up-item{flex:0 0 auto;min-width:182px;padding:15px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;transition:.2s}
   .up-item:last-child{border-right:none}
   .up-item:hover{background:rgba(255,255,255,.02)}
