@@ -51,9 +51,9 @@
   };
   firebase.initializeApp(firebaseConfig);
   const _fbDb = firebase.database();
-  const _fbRef = _fbDb.ref('progressDeck');
+  const _fbRef = _fbDb.ref('taskManager');
   window._fbRef = _fbRef;
-  const _fbBackupRef = _fbDb.ref('progressDeckBackup');   // 自動バックアップ用（本体とは別キー）
+  const _fbBackupRef = _fbDb.ref('taskManagerBackup');   // 自動バックアップ用（本体とは別キー）
   const _fbAuth = firebase.auth();
 
   window.firebaseSave = function(data) {
@@ -90,7 +90,7 @@
         window._firebaseData = val;
         if(window.firebaseBackup) window.firebaseBackup(val);   // 起動時の自動バックアップ（1日1回）
       } else {
-        const local = localStorage.getItem("progressDeck.v2");
+        const local = localStorage.getItem("taskManager.v2");
         if(local) {
           try {
             const parsed = JSON.parse(local);
@@ -1479,7 +1479,7 @@
 </div>
 
 <script>
-const STORE="progressDeck.v2";
+const STORE="taskManager.v2";
 const MSGS=[
  "今日も起動できた。それだけで前進だ。",
  "完璧じゃなくていい。1%でも動けば記録は伸びる。",
