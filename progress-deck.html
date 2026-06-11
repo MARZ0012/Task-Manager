@@ -57,6 +57,9 @@
   const _fbAuth = firebase.auth();
 
   window.firebaseSave = function(data) {
+    // 空データ保護：起動直後など中身が無いデータで上書きしない（データ消失バグの対策）
+    if(!data || !data.cats || !data.routine) return;
+    if(!window._fbReady) return;            // 読み込み完了前は書かない
     _fbRef.set(data).then(() => {
       const el = document.getElementById("lastsave");
       if(el) el.textContent = "SAVED · " + new Date().toLocaleTimeString("ja-JP");
