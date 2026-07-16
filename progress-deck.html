@@ -996,6 +996,14 @@
   .cal-ev .t{font-family:"Roboto Mono",monospace;font-size:10px;color:var(--evc,var(--spec-amber));margin-right:4px}
   .cal-more{font-size:10px;color:var(--ink-4);letter-spacing:.04em}
 
+  /* ---- 予定チップのドラッグ＆ドロップ移動 ---- */
+  .cal-ev{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  .cal-ev.drag-src{opacity:.3}
+  .cal-cell.drop-over{border-color:var(--spec-amber);background:rgba(224,145,63,.14);box-shadow:inset 0 0 0 1px var(--spec-amber)}
+  .drag-ghost{position:fixed;z-index:1200;pointer-events:none;transform:translate(-50%,-140%);max-width:200px;opacity:.95;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55))}
+  .drag-ghost .cal-ev{font-size:12px;padding:5px 10px;white-space:nowrap}
+  body.ev-dragging{overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
   /* event modal extras */
   .modal input[type=date],.modal input[type=time]{font-family:"Roboto Mono",monospace;color-scheme:dark}
   .ev-actions{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px;flex-wrap:wrap}
@@ -3608,7 +3616,7 @@ function renderCalendar(){
     const hol=holidayName(key);
     const evHTML=events.map(e=>{
       const rep=(e.repeat&&e.repeat!=="none")?'<span class="rep">↻</span>':"";
-      return `<div class="cal-ev" style="--evc:${evColorOf(e)}" onclick="event.stopPropagation();openDay('${key}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
+      return `<div class="cal-ev" style="--evc:${evColorOf(e)}" draggable="true" data-ev="${e.id}" data-day="${key}" onclick="event.stopPropagation();openDay('${key}')">${e.time?`<span class="t">${e.time}</span>`:""}${rep}${esc(e.title)}</div>`;
     }).join("");
     const memoMarks=memos.map(e=>
       `<span class="memo-dot" title="記録（クリックで表示）" onclick="event.stopPropagation();openDay('${key}')">◍</span>`
@@ -3623,7 +3631,7 @@ function renderCalendar(){
     for(let i=startDow-1;i>=0;i--){
       const dnum=prevDays-i;
       const pd=new Date(y,m-1,dnum), pkey=dateKey(pd);
-      cells+=`<div class="cal-cell spill" onclick="openDay('${pkey}')">${cellContent(pkey,dnum)}</div>`;
+      cells+=`<div class="cal-cell spill" data-key="${pkey}" onclick="openDay('${pkey}')">${cellContent(pkey,dnum)}</div>`;
     }
   }
   for(let day=1;day<=daysInMonth;day++){
@@ -3631,16 +3639,171 @@ function renderCalendar(){
     const isToday=key===todayKey;
     const isPast=key<todayKey;
     const hol=holidayName(key);
-    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${hol?'holiday':''}" onclick="openDay('${key}')">${cellContent(key,day)}</div>`;
+    cells+=`<div class="cal-cell ${isToday?'today':''} ${isPast?'past':''} ${hol?'holiday':''}" data-key="${key}" onclick="openDay('${key}')">${cellContent(key,day)}</div>`;
   }
   // 末尾を翌月頭の日付で埋めて、各行7マスに揃える
   const totalCells=startDow+daysInMonth;
   const trailing=(7-(totalCells%7))%7;
   for(let i=1;i<=trailing;i++){
     const nd=new Date(y,m+1,i), nkey=dateKey(nd);
-    cells+=`<div class="cal-cell spill" onclick="openDay('${nkey}')">${cellContent(nkey,i)}</div>`;
+    cells+=`<div class="cal-cell spill" data-key="${nkey}" onclick="openDay('${nkey}')">${cellContent(nkey,i)}</div>`;
   }
   el.innerHTML=`<div class="cal-dow-row">${dows}</div><div class="cal-grid">${cells}</div>`;
+  attachCalDrag();
+}
+
+// ======================================================================
+// ====== 予定チップのドラッグ＆ドロップ移動 ======
+//  PC   : HTML5 Drag & Drop（そのままつまんで別日のマスへ）
+//  スマホ: 予定チップを長押し(約0.5秒) → 浮き上がったら指でずらして離す
+//  繰り返し予定は落とした瞬間に「この日だけ / 全体」の選択モーダルを出す。
+// ======================================================================
+let _calDrag=null;   // PCドラッグ中の {id, fromKey}
+function attachCalDrag(){
+  const cal=document.getElementById("calendar"); if(!cal)return;
+  // --- PC: HTML5 DnD ---
+  cal.querySelectorAll(".cal-ev[data-ev]").forEach(chip=>{
+    chip.addEventListener("dragstart",e=>{
+      _calDrag={id:chip.dataset.ev, fromKey:chip.dataset.day};
+      chip.classList.add("drag-src");
+      e.dataTransfer.effectAllowed="move";
+      try{e.dataTransfer.setData("text/plain",chip.dataset.ev);}catch(_){}
+    });
+    chip.addEventListener("dragend",()=>{
+      chip.classList.remove("drag-src");
+      cal.querySelectorAll(".cal-cell.drop-over").forEach(c=>c.classList.remove("drop-over"));
+      _calDrag=null;
+    });
+    // --- スマホ: 長押しドラッグ ---
+    attachTouchDrag(chip);
+  });
+  cal.querySelectorAll(".cal-cell[data-key]").forEach(cell=>{
+    cell.addEventListener("dragover",e=>{
+      if(!_calDrag)return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect="move";
+      if(!cell.classList.contains("drop-over")){
+        cal.querySelectorAll(".cal-cell.drop-over").forEach(c=>c.classList.remove("drop-over"));
+        cell.classList.add("drop-over");
+      }
+    });
+    cell.addEventListener("dragleave",()=>cell.classList.remove("drop-over"));
+    cell.addEventListener("drop",e=>{
+      e.preventDefault(); e.stopPropagation();
+      cell.classList.remove("drop-over");
+      if(_calDrag) moveEventTo(_calDrag.id,_calDrag.fromKey,cell.dataset.key);
+      _calDrag=null;
+    });
+  });
+}
+// スマホ用：長押しでドラッグ開始。長押し前に指が動いたらスクロール扱いでキャンセル。
+function attachTouchDrag(chip){
+  let timer=null, ghost=null, dragging=false, sx=0, sy=0, curCell=null;
+  const id=chip.dataset.ev, fromKey=chip.dataset.day;
+  const cleanup=()=>{
+    if(timer){clearTimeout(timer);timer=null;}
+    if(ghost){ghost.remove();ghost=null;}
+    dragging=false; curCell=null;
+    document.body.classList.remove("ev-dragging");
+    chip.classList.remove("drag-src");
+    document.querySelectorAll(".cal-cell.drop-over").forEach(c=>c.classList.remove("drop-over"));
+  };
+  chip.addEventListener("touchstart",e=>{
+    if(e.touches.length!==1)return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+    timer=setTimeout(()=>{
+      timer=null; dragging=true;
+      document.body.classList.add("ev-dragging");
+      chip.classList.add("drag-src");
+      ghost=document.createElement("div");
+      ghost.className="drag-ghost";
+      ghost.appendChild(chip.cloneNode(true));
+      document.body.appendChild(ghost);
+      ghost.style.left=sx+"px"; ghost.style.top=sy+"px";
+      if(navigator.vibrate)try{navigator.vibrate(30);}catch(_){}
+    },450);
+  },{passive:true});
+  chip.addEventListener("touchmove",e=>{
+    const t=e.touches[0];
+    if(!dragging){
+      // 長押し成立前に10px以上動いたらスクロール意図 → ドラッグ化を中止
+      if(timer && (Math.abs(t.clientX-sx)>10||Math.abs(t.clientY-sy)>10)){clearTimeout(timer);timer=null;}
+      return;
+    }
+    e.preventDefault();   // ドラッグ中は画面スクロールを止める
+    if(ghost){ghost.style.left=t.clientX+"px";ghost.style.top=t.clientY+"px";}
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    const cell=el?el.closest("#calendar .cal-cell[data-key]"):null;
+    if(curCell&&curCell!==cell)curCell.classList.remove("drop-over");
+    curCell=cell;
+    if(cell)cell.classList.add("drop-over");
+  },{passive:false});
+  chip.addEventListener("touchend",e=>{
+    if(dragging){
+      e.preventDefault();   // 離した後のclick(openDay)発火を防ぐ
+      const toKey=curCell?curCell.dataset.key:null;
+      cleanup();
+      if(toKey) moveEventTo(id,fromKey,toKey);
+    }else cleanup();
+  });
+  chip.addEventListener("touchcancel",cleanup);
+}
+// 移動の本体。単発ならその場で移動、繰り返しなら選択モーダルへ。
+function moveEventTo(id,fromKey,toKey){
+  if(!toKey||fromKey===toKey)return;
+  const e=data.events.find(x=>x.id===id); if(!e)return;
+  if(e.repeat&&e.repeat!=="none"){ openMoveChoice(e,fromKey,toKey); return; }
+  e.date=toKey;
+  render();
+}
+// ===== 繰り返し予定の移動：この日だけ / 全体 =====
+let _moveCtx=null;
+function openMoveChoice(e,fromKey,toKey){
+  _moveCtx={id:e.id,fromKey,toKey};
+  const [,fm,fd]=fromKey.split("-").map(Number);
+  const [,tm,td]=toKey.split("-").map(Number);
+  let bg=document.getElementById("movePanel");
+  if(!bg){
+    bg=document.createElement("div"); bg.id="movePanel"; bg.className="modal-bg";
+    bg.addEventListener("click",ev=>{if(ev.target.id==="movePanel"){bg.classList.remove("show");_moveCtx=null;}});
+    document.body.appendChild(bg);
+  }
+  bg.innerHTML=`<div class="modal glass">
+    <h4>繰り返し予定の移動</h4>
+    <div style="font-size:13px;color:var(--ink-2);line-height:1.9;margin-bottom:18px">
+      「${esc(e.title)}」は繰り返し予定です。<br>
+      <b style="color:var(--ink);font-weight:400">${fm}/${fd} → ${tm}/${td}</b> の移動を、この回だけにするか、繰り返し全体をずらすか選んでください。
+    </div>
+    <div class="row" style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="document.getElementById('movePanel').classList.remove('show');_moveCtx=null;">キャンセル</button>
+      <button class="btn" onclick="moveChoiceDo('one')">この日だけ移動</button>
+      <button class="btn solid" onclick="moveChoiceDo('all')">繰り返し全体を移動</button>
+    </div>
+  </div>`;
+  bg.classList.add("show");
+}
+function moveChoiceDo(mode){
+  const bg=document.getElementById("movePanel"); if(bg)bg.classList.remove("show");
+  if(!_moveCtx)return;
+  const {id,fromKey,toKey}=_moveCtx; _moveCtx=null;
+  const e=data.events.find(x=>x.id===id); if(!e)return;
+  if(mode==="one"){
+    // この回だけ：元の日をskipし、移動先に単発コピーを作る（色・メモ等は引き継ぐ）
+    if(!Array.isArray(e.skip)) e.skip=[];
+    if(!e.skip.includes(fromKey)) e.skip.push(fromKey);
+    if(e.date===fromKey){ const next=nextOccurrence(e,fromKey); if(next) e.date=next; }
+    data.events.push({
+      id:uid(), date:toKey, title:e.title, memo:e.memo||"", kind:e.kind||"event",
+      time:e.time||"", repeat:"none", repeatEnd:"", inToday:e.inToday!==false, color:e.color||""
+    });
+  }else{
+    // 全体：開始日・終了日・skip日をすべて同じ日数ぶんスライド（曜日ごと動く）
+    const delta=_daysBetween(fromKey,toKey);
+    e.date=dateKey(_addDays(_ymd(e.date),delta));
+    if(e.repeatEnd) e.repeatEnd=dateKey(_addDays(_ymd(e.repeatEnd),delta));
+    if(Array.isArray(e.skip)) e.skip=e.skip.map(k=>dateKey(_addDays(_ymd(k),delta)));
+  }
+  render();
 }
 
 // ====== DAY DETAIL POPUP ======
