@@ -1004,6 +1004,14 @@
   @keyframes ghostPop{from{transform:translate(-50%,-140%) scale(.6);opacity:0}to{transform:translate(-50%,-140%) scale(1);opacity:.95}}
   .drag-ghost .cal-ev{font-size:12px;padding:5px 10px;white-space:nowrap}
   body.ev-dragging{overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  /* 持ち上げ成立の合図：指の位置から広がる光のリング（ハプティック非対応端末向け） */
+  .pickup-ring{position:fixed;z-index:1190;pointer-events:none;width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--spec-amber);transform:translate(-50%,-50%);
+    animation:pickupRing .45s var(--ease) forwards}
+  @keyframes pickupRing{
+    0%{opacity:.9;box-shadow:0 0 0 0 rgba(224,145,63,.5)}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(5);box-shadow:0 0 18px 6px rgba(224,145,63,0)}
+  }
 
   /* event modal extras */
   .modal input[type=date],.modal input[type=time]{font-family:"Roboto Mono",monospace;color-scheme:dark}
@@ -3680,8 +3688,17 @@ function hapticTap(){
   try{ if(navigator.vibrate) vibrated=!!navigator.vibrate(40); }catch(_){}
   if(!vibrated){
     // iOSフォールバック：スイッチをJSで切り替えてシステムハプティックを鳴らす
+    // ※iOS 17.4〜26.4のみ有効。26.5でAppleがJSからの発火を封鎖済み。
     try{ const sw=document.getElementById("hapticSwitch"); if(sw) sw.click(); }catch(_){}
   }
+}
+// 指の位置から広がる光のリング（触覚が使えない端末でも「つまんだ」が分かる）
+function pickupRing(x,y){
+  const r=document.createElement("div");
+  r.className="pickup-ring";
+  r.style.left=x+"px"; r.style.top=y+"px";
+  document.body.appendChild(r);
+  setTimeout(()=>r.remove(),500);
 }
 function attachCalDrag(){
   const cal=document.getElementById("calendar"); if(!cal)return;
@@ -3744,7 +3761,8 @@ function attachTouchDrag(chip){
       ghost.appendChild(chip.cloneNode(true));
       document.body.appendChild(ghost);
       ghost.style.left=sx+"px"; ghost.style.top=sy+"px";
-      hapticTap();   // 持ち上げた合図（Android=バイブ / iOS 17.4+=ハプティック）
+      hapticTap();       // Android=バイブ / iOS 17.4〜26.4=ハプティック（26.5+はAppleが封鎖）
+      pickupRing(sx,sy); // 全端末共通：指の位置から光のリングを広げて「つまんだ」合図
     },450);
   },{passive:true});
   chip.addEventListener("touchmove",e=>{
