@@ -1000,7 +1000,8 @@
   .cal-ev{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .cal-ev.drag-src{opacity:.3}
   .cal-cell.drop-over{border-color:var(--spec-amber);background:rgba(224,145,63,.14);box-shadow:inset 0 0 0 1px var(--spec-amber)}
-  .drag-ghost{position:fixed;z-index:1200;pointer-events:none;transform:translate(-50%,-140%);max-width:200px;opacity:.95;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55))}
+  .drag-ghost{position:fixed;z-index:1200;pointer-events:none;transform:translate(-50%,-140%);max-width:200px;opacity:.95;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));animation:ghostPop .18s var(--ease)}
+  @keyframes ghostPop{from{transform:translate(-50%,-140%) scale(.6);opacity:0}to{transform:translate(-50%,-140%) scale(1);opacity:.95}}
   .drag-ghost .cal-ev{font-size:12px;padding:5px 10px;white-space:nowrap}
   body.ev-dragging{overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
@@ -3659,6 +3660,29 @@ function renderCalendar(){
 //  繰り返し予定は落とした瞬間に「この日だけ / 全体」の選択モーダルを出す。
 // ======================================================================
 let _calDrag=null;   // PCドラッグ中の {id, fromKey}
+
+// ====== 触覚フィードバック（持ち上げた感を出す） ======
+//  Android: navigator.vibrate で短くブッと鳴らす
+//  iPhone : Web Vibration API非対応のため、iOS 17.4+ Safariの
+//           「スイッチ型チェックボックスの切替でハプティックが発火する」挙動を利用
+(function(){
+  const sw=document.createElement("input");
+  sw.type="checkbox";
+  sw.setAttribute("switch","");   // iOS Safari 17.4+ のネイティブスイッチ
+  sw.id="hapticSwitch";
+  sw.style.cssText="position:fixed;left:-200px;top:0;width:1px;height:1px;pointer-events:none";
+  sw.tabIndex=-1;
+  sw.setAttribute("aria-hidden","true");
+  document.body.appendChild(sw);
+})();
+function hapticTap(){
+  let vibrated=false;
+  try{ if(navigator.vibrate) vibrated=!!navigator.vibrate(40); }catch(_){}
+  if(!vibrated){
+    // iOSフォールバック：スイッチをJSで切り替えてシステムハプティックを鳴らす
+    try{ const sw=document.getElementById("hapticSwitch"); if(sw) sw.click(); }catch(_){}
+  }
+}
 function attachCalDrag(){
   const cal=document.getElementById("calendar"); if(!cal)return;
   // --- PC: HTML5 DnD ---
@@ -3720,7 +3744,7 @@ function attachTouchDrag(chip){
       ghost.appendChild(chip.cloneNode(true));
       document.body.appendChild(ghost);
       ghost.style.left=sx+"px"; ghost.style.top=sy+"px";
-      if(navigator.vibrate)try{navigator.vibrate(30);}catch(_){}
+      hapticTap();   // 持ち上げた合図（Android=バイブ / iOS 17.4+=ハプティック）
     },450);
   },{passive:true});
   chip.addEventListener("touchmove",e=>{
