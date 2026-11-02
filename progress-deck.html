@@ -56,72 +56,188 @@
   const _fbBackupRef = _fbDb.ref('taskManagerBackup');   // 自動バックアップ用（本体とは別キー）
   const _fbAuth = firebase.auth();
 
-  window.firebaseSave = function(data) {
-    // 空データ保護：起動直後など中身が無いデータで上書きしない（データ消失バグの対策）
+  // ===== 保存の安全装置（データ消失対策 v2） =====
+  //  ・サーバーの内容が変わったら、開いている画面にすぐ反映（開きっぱなしのタブでも最新に）
+  //  ・オフライン中は書き込まず、つながった時にほかの端末の変更とぶつかっていないか確かめる
+  //  ・記録が急に大きく減る保存は、確認してから
+  //  ・メールアドレスとパスワードでログインした本人だけが使う
+  window._fbReady = false;        // サーバーの内容を1回受け取った
+  window._online = false;         // サーバーとつながっている
+  window._baseCanon = null;       // 最後にサーバーと一致していた内容（比較用の文字列）
+  window._baseWeight = 0;         // そのときの記録の量
+  window._pendingOffline = false; // オフライン中に送れなかった変更がある
+  window._serverVal = null;       // 最後に受け取ったサーバーの内容
+  let _asking = false;
+
+  // Firebaseに保存したときと同じ形に揃えて文字列にする（空の配列・空のオブジェクト・nullは消える）
+  function _canon(x){
+    if(x === null || x === undefined) return undefined;
+    if(Array.isArray(x)){ const a = x.map(_canon).filter(v => v !== undefined); return a.length ? a : undefined; }
+    if(typeof x === 'object'){
+      const o = {}; Object.keys(x).sort().forEach(k => { const v = _canon(x[k]); if(v !== undefined) o[k] = v; });
+      return Object.keys(o).length ? o : undefined;
+    }
+    return x;
+  }
+  function _canonStr(x){ return JSON.stringify(_canon(x) ?? null); }
+  window._canonStr = _canonStr;
+  function _arr(x){ return Array.isArray(x) ? x : (x && typeof x === 'object' ? Object.values(x) : []); }
+  function _keys(x){ return x && typeof x === 'object' ? Object.keys(x).length : 0; }
+  // 記録の量（プロジェクト・タスク・予定・ご飯・達成・生理の記録・メモ・ファイルの合計）
+  function _weight(d){
+    if(!d) return 0;
+    let n = 0;
+    _arr(d.cats).forEach(c => { n += 1 + _arr(c.memos).length + _arr(c.files).length;
+      _arr(c.goals).forEach(g => { n += 1 + _arr(g.checks).length + _arr(g.memos).length + _arr(g.files).length; }); });
+    n += _arr(d.events).length + _keys(d.meals);
+    if(d.routine){ n += _keys(d.routine.achieve) + _arr(d.routine.items).length + _arr(d.routine.counters).length; }
+    if(d.cycle){ n += _arr(d.cycle.starts).length + _keys(d.cycle.notes); }
+    return n;
+  }
+  window._weight = _weight;
+  function _setBase(val){ window._baseCanon = _canonStr(val); window._baseWeight = _weight(val); }
+  function _status(msg){
+    const el = document.getElementById("lastsave");
+    if(el) el.textContent = msg + " · " + new Date().toLocaleTimeString("ja-JP");
+  }
+  window._fbStatus = _status;
+
+  window.firebaseSave = function(data, force) {
     if(!data || !data.cats || !data.routine) return;
-    if(!window._fbReady) return;            // 読み込み完了前は書かない
-    _fbRef.set(data).then(() => {
-      const el = document.getElementById("lastsave");
-      if(el) el.textContent = "SAVED · " + new Date().toLocaleTimeString("ja-JP");
-    }).catch(e => console.error("Firebase save error:", e));
+    if(!window._fbReady) return;            // サーバーの内容を受け取る前は書かない
+    if(!window._firebaseReady) return;      // 受け取った内容を画面に出す前は書かない（サンプルでの上書き防止）
+    if(_asking) return;
+    const str = _canonStr(data);
+    if(!force && str === window._baseCanon) return;   // 変更なし
+    // オフライン中は送らない（つながった時に、ほかの端末の変更とぶつかっていないか確かめてから送る）
+    if(!window._online){ window._pendingOffline = true; _status("オフライン · 未送信の変更あり"); return; }
+    // 記録が急に大きく減る保存は止めて確認
+    const wNew = _weight(data), wOld = window._baseWeight;
+    if(!force && wOld >= 10 && wNew < wOld * 0.6){
+      _asking = true;
+      const ok = confirm(`保存しようとしている内容で、記録が大きく減ります（${wOld}件 → ${wNew}件）。\n\nOK：このまま保存する\nキャンセル：保存しないで、サーバーの記録に戻す`);
+      _asking = false;
+      if(!ok){ if(window._applyRemote && window._serverVal) window._applyRemote(window._serverVal, true); return; }
+    }
+    window._baseCanon = str; window._baseWeight = wNew;
+    _fbRef.set(JSON.parse(JSON.stringify(data))).then(() => _status("SAVED"))
+      .catch(e => { console.error("Firebase save error:", e); _status("保存失敗"); });
   };
 
   // 自動バックアップ：1日1回、起動時に当日のスナップショットを保存し、直近3日分だけ残す。
-  // 有効なデータのときだけ実行（空データで上書きしない）。誤上書き・破損からの巻き戻し用。
   window.firebaseBackup = function(data) {
-    if(!data || !data.cats || !data.routine) return;   // 壊れた/空データは取らない
+    if(!data || !data.cats || !data.routine) return;
     const d = new Date();
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
     _fbBackupRef.once('value', (snap) => {
       const all = snap.val() || {};
-      if(all[key]) return;                 // 今日の分が既にあれば何もしない（=1日1回）
+      if(all[key]) return;
       const updates = {};
       updates[key] = { savedAt: Date.now(), data: data };
-      // 直近3日だけ残す：今日を足した上で古いものを削除対象に
-      const keys = Object.keys(all).concat(key).sort();   // 日付昇順
+      const keys = Object.keys(all).concat(key).sort();
       while(keys.length > 3){ const old = keys.shift(); updates[old] = null; }
       _fbBackupRef.update(updates).catch(e => console.error("backup error:", e));
     }, (e)=>console.error("backup read error:", e));
   };
 
-  // 実際にデータを読み込む処理（ログイン成功後にだけ呼ぶ）
-  function _loadFromFirebase() {
-    _fbRef.once('value', (snapshot) => {
-      window._fbReady = true;
-      const val = snapshot.val();
-      if(val && val.cats && val.routine) {
-        window._firebaseData = val;
-        if(window.firebaseBackup) window.firebaseBackup(val);   // 起動時の自動バックアップ（1日1回）
-      } else {
-        const local = localStorage.getItem("taskManager.v2");
-        if(local) {
-          try {
-            const parsed = JSON.parse(local);
-            if(parsed && parsed.cats && parsed.routine) {
-              window._firebaseData = parsed;
-              window.firebaseSave(parsed);
-            }
-          } catch(e) {}
-        }
-        if(!window._firebaseData) window._firebaseData = null;
+  // オフラインから戻った時：そのあいだにほかの端末で変更があったか確かめる
+  function _resolveOffline(){
+    _fbRef.once('value', (snap) => {
+      const sv = snap.val();
+      window._serverVal = sv;
+      window._pendingOffline = false;
+      if(_canonStr(sv) === window._baseCanon){
+        // ほかの端末は何も変えていない → この端末の変更を送る
+        if(window.data_for_save) window.firebaseSave(window.data_for_save());
+        return;
       }
-      if(window._onFirebaseReady) window._onFirebaseReady(window._firebaseData);
-    }, (err) => {
-      // 読み込みが拒否された（ルールで弾かれた等）場合
-      console.error("Firebase read error:", err);
-      window._fbAuthError = "DBアクセスが拒否されました（ルール設定を確認してください）";
+      _asking = true;
+      const mine = confirm("オフラインのあいだに、ほかの端末でも記録が変わっていました。\n\nOK：この端末の内容で上書きする\nキャンセル：ほかの端末の内容を使う（この端末でオフライン中に入力した分は消えます）");
+      _asking = false;
+      if(mine){ _setBase(sv); if(window.data_for_save) window.firebaseSave(window.data_for_save(), true); }
+      else if(window._applyRemote){ window._applyRemote(sv, true); }
     });
   }
 
-  window._fbReady = false;
-  // まず匿名ログイン。成功したらデータ読み込みへ。
-  _fbAuth.signInAnonymously().catch((e) => {
-    console.error("匿名ログイン失敗:", e);
-    window._fbAuthError = "匿名ログインに失敗しました（Authentication設定を確認）";
-  });
+  // サーバーの内容をずっと見張る（最初の1回が起動時の読み込み）
+  let _listening = false;
+  function _loadFromFirebase() {
+    if(_listening) return; _listening = true;
+    _fbDb.ref('.info/connected').on('value', (s) => {
+      const was = window._online;
+      window._online = !!s.val();
+      if(!window._online && was) _status("オフライン");
+      if(window._online && !was && window._pendingOffline) _resolveOffline();
+    });
+    _fbRef.on('value', (snapshot) => {
+      const val = snapshot.val();
+      window._serverVal = val;
+      const valid = !!(val && val.cats && val.routine);
+      if(!window._fbReady){
+        window._fbReady = true;
+        if(valid){
+          _setBase(val);
+          window._firebaseData = JSON.parse(JSON.stringify(val));   // 画面用は別のコピー（控えと混ざらないように）
+          if(window.firebaseBackup) window.firebaseBackup(val);
+        } else {
+          const local = localStorage.getItem("taskManager.v2");
+          if(local) {
+            try {
+              const parsed = JSON.parse(local);
+              if(parsed && parsed.cats && parsed.routine) window._firebaseData = parsed;
+            } catch(e) {}
+          }
+          if(!window._firebaseData) window._firebaseData = null;
+        }
+        if(window._onFirebaseReady) window._onFirebaseReady(window._firebaseData);
+        return;
+      }
+      if(!valid) return;                                   // 空・壊れた内容は画面に出さない
+      if(_canonStr(val) === window._baseCanon) return;     // 自分が書いた内容が返ってきただけ
+      if(window._pendingOffline) return;                   // オフライン中の変更は、つながった時に判断
+      _setBase(val);
+      if(window._applyRemote) window._applyRemote(val);    // ほかの端末の変更を反映
+    }, (err) => {
+      console.error("Firebase read error:", err);
+      _status("読み込み失敗（ルール設定を確認）");
+    });
+  }
+
+  // ===== ログイン（メールアドレスとパスワード） =====
+  function _loginBox(show, msg){
+    const build = () => {
+      let box = document.getElementById("loginBox");
+      if(!show){ if(box) box.remove(); return; }
+      if(!box){
+        box = document.createElement("div");
+        box.id = "loginBox";
+        box.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(7,7,7,.96);display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit";
+        box.innerHTML = `<form id="loginForm" style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;color:var(--ink,#f0ece3)">
+            <div style="font-size:11px;letter-spacing:.4em;color:var(--ink-3,#8f8a80)">PROGRESS · DECK</div>
+            <div style="font-size:18px;font-weight:300;letter-spacing:.06em;margin-bottom:6px">ログイン</div>
+            <input id="loginEmail" type="email" autocomplete="username" placeholder="メールアドレス" required style="padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:inherit;font-size:16px">
+            <input id="loginPass" type="password" autocomplete="current-password" placeholder="パスワード" required style="padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:inherit;font-size:16px">
+            <button type="submit" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:inherit;font-size:14px;letter-spacing:.2em;cursor:pointer">ログイン</button>
+            <div id="loginMsg" style="font-size:12px;color:#e0913f;min-height:1em"></div>
+          </form>`;
+        document.body.appendChild(box);
+        box.querySelector("#loginForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const m = box.querySelector("#loginMsg"); m.textContent = "ログイン中…";
+          _fbAuth.signInWithEmailAndPassword(box.querySelector("#loginEmail").value.trim(), box.querySelector("#loginPass").value)
+            .catch(err => { console.error(err); m.textContent = "ログインできませんでした（メールアドレスかパスワードを確認）"; });
+        });
+      }
+      if(msg) box.querySelector("#loginMsg").textContent = msg;
+    };
+    if(document.body) build(); else document.addEventListener("DOMContentLoaded", build);
+  }
   _fbAuth.onAuthStateChanged((user) => {
-    if(user){
-      _loadFromFirebase(); // ログインできたのでデータ読み込み
+    if(user && !user.isAnonymous){
+      _loginBox(false);
+      _loadFromFirebase();
+    } else {
+      _loginBox(true);
     }
   });
 </script>
@@ -1596,6 +1712,24 @@ window._onFirebaseReady = function(fbData) {
   rolloverIfNeeded();
   render();
 };
+// ほかの端末の変更を画面に反映（入力中・ウィンドウを開いている間は、閉じてから反映）
+window.data_for_save = () => data;
+let _remoteWaiting = null;
+function _isEditing(){
+  const a = document.activeElement;
+  if(a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return true;
+  return !!document.querySelector('.modal-bg.show,[id$="Modal"].show,[id$="Panel"].show');
+}
+window._applyRemote = function(val, now){
+  if(!val || !val.cats || !val.routine) return;
+  if(!now && (_isEditing() || _saveTimer)){ _remoteWaiting = val; return; }
+  _remoteWaiting = null;
+  data = migrate(JSON.parse(JSON.stringify(val)));
+  rolloverIfNeeded();
+  render();
+  if(window._fbStatus) window._fbStatus("SYNCED");
+};
+setInterval(() => { if(_remoteWaiting && !_isEditing() && !_saveTimer) window._applyRemote(_remoteWaiting); }, 1500);
 function migrate(d){
   if(!Array.isArray(d.cats)) d.cats = d.cats ? Object.values(d.cats) : [];
   d.cats.forEach(c=>{
@@ -1674,7 +1808,9 @@ function syncNow(){
     window._fbRef.once('value', (snap)=>{
       const val=snap.val();
       if(val && val.cats && val.routine){
-        data = migrate(val);
+        window._serverVal = val;
+        if(window._canonStr){ window._baseCanon = window._canonStr(val); window._baseWeight = window._weight(val); }
+        data = migrate(JSON.parse(JSON.stringify(val)));
         rolloverIfNeeded();
         render();
         _finishSync(btn,clock,"SYNCED");
@@ -4248,6 +4384,7 @@ document.getElementById("monthModal").addEventListener("click",e=>{if(e.target.i
 // Firebaseのロードが間に合わなかった場合のフォールバック（タイムアウト3秒）
 setTimeout(()=>{
   if(!window._firebaseReady){
+    if(window._fbReady){ window._onFirebaseReady(window._firebaseData); return; }  // 読み込み済みなら本物を表示
     data=defaultData();
     rolloverIfNeeded();
     render();
