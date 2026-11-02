@@ -982,6 +982,29 @@
   .modal-bg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;
     background:rgba(0,0,0,.7);backdrop-filter:blur(8px)}
   .modal-bg.show{display:flex}
+  /* ===== 予定の書き出し（LINE WORKS用 .ics） ===== */
+  .modal.ics-modal{max-width:540px}
+  .ics-range{display:flex;gap:12px}.ics-range>div{flex:1;min-width:0}
+  .ics-range input{margin-bottom:10px}
+  .ics-quick{display:flex;gap:8px;margin-bottom:20px}.ics-quick .btn{font-size:11px;padding:7px 12px}
+  .ics-colors{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+  .ics-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid var(--line-2);border-radius:999px;font-size:12px;color:var(--ink-2);cursor:pointer;user-select:none;-webkit-user-select:none}
+  .ics-chip.off{opacity:.35;text-decoration:line-through}
+  .ics-chip i,.ics-row i{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 auto}
+  .ics-chip b{font-weight:300;color:var(--ink-3);font-family:"Roboto Mono",monospace;font-size:10.5px}
+  .ics-list{max-height:36vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:11px;margin-bottom:16px}
+  .ics-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink);cursor:pointer;font-weight:300}
+  .ics-row:last-child{border-bottom:none}
+  .ics-row.off{opacity:.3}
+  .ics-row .d{font-family:"Roboto Mono",monospace;font-size:11px;color:var(--ink-3);width:118px;flex:0 0 auto;white-space:nowrap}
+  .ics-row .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ics-row .r{font-size:10px;color:var(--ink-4);flex:0 0 auto}
+  .ics-empty{padding:18px;font-size:12px;color:var(--ink-3);text-align:center}
+  #icsModal input[type=checkbox]{width:auto;margin:0;padding:0;accent-color:var(--spec-amber);flex:0 0 auto}
+  .ics-opts{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+  .ics-opts>div{min-width:150px}
+  #icsModal .ics-check{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:.04em;font-size:12.5px;color:var(--ink-2);margin:0 0 12px;cursor:pointer}
+  .ics-note{font-size:11px;color:var(--ink-3);line-height:1.8;margin:6px 0 18px;letter-spacing:.02em}
   .modal{padding:32px;width:100%;max-width:400px;max-height:calc(100vh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch}
   .modal h4{font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:20px;font-weight:400;color:var(--ink-2)}
   .modal input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:14px;font-size:14px;margin-bottom:20px;font-family:inherit;font-weight:300}
@@ -1440,7 +1463,10 @@
         <button class="btn" onclick="calShift(1)">›</button>
         <button class="btn" onclick="calToday()">今日</button>
       </div>
-      <button class="btn solid" onclick="openEvent()">+ 予定を追加</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="openIcs()" title="LINE WORKSなどのカレンダーに取り込めるファイル（.ics）を作ります">⇪ 書き出し</button>
+        <button class="btn solid" onclick="openEvent()">+ 予定を追加</button>
+      </div>
     </div>
     <div class="calendar glass" id="calendar"></div>
   </div>
@@ -1557,6 +1583,36 @@
     <div class="mp-grid" id="mpGrid"></div>
     <div class="row" style="margin-top:18px">
       <button class="btn" onclick="closeMonthPick()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="icsModal">
+  <div class="modal glass ics-modal">
+    <h4>予定を書き出す（LINE WORKS用）</h4>
+    <div class="ics-range">
+      <div><label>開始日</label><input type="date" id="icsFrom" onchange="renderIcs()"></div>
+      <div><label>終了日</label><input type="date" id="icsTo" onchange="renderIcs()"></div>
+    </div>
+    <div class="ics-quick">
+      <button class="btn" onclick="icsRange(1)">開始日から1ヶ月</button>
+      <button class="btn" onclick="icsRange(3)">3ヶ月</button>
+    </div>
+    <label>書き出す色（押すと切り替え）</label>
+    <div class="ics-colors" id="icsColors"></div>
+    <label>予定（押すと、書き出す／書き出さないを切り替え）</label>
+    <div class="ics-list" id="icsList"></div>
+    <div class="ics-opts">
+      <div>
+        <label>予定の長さ</label>
+        <select id="icsDur"><option value="30">30分</option><option value="60" selected>1時間</option><option value="90">1時間半</option><option value="120">2時間</option></select>
+      </div>
+      <label class="ics-check"><input type="checkbox" id="icsMemo"> 予定のメモも書き出す</label>
+    </div>
+    <p class="ics-note">・時刻のない予定は「終日」として書き出します。<br>・終わりの時刻は入っていないので、「予定の長さ」で決めます。<br>・繰り返しの予定は、1つ外すと同じ繰り返しがまとめて外れます。<br>・外した色・予定は、この端末で次回も外れたままになります。</p>
+    <div class="row">
+      <button class="btn" onclick="closeIcs()">CANCEL</button>
+      <button class="btn solid" id="icsGo" onclick="exportIcs()">書き出す</button>
     </div>
   </div>
 </div>
@@ -4099,6 +4155,130 @@ const EV_COLOR_NAMES={amber:"アンバー",red:"レッド",pink:"ピンク",gree
 let evColor="amber";
 // 予定オブジェクト → 実際の色コード（未設定・不明キーは amber）
 function evColorOf(e){ return EV_COLORS[e&&e.color] || EV_COLORS.amber; }
+
+// ====================== 予定の書き出し（iCal形式 .ics／LINE WORKSなどに取り込む用） ======================
+const ICS_PREF_KEY="progressDeck.icsPrefs";
+let _icsState=null;
+function _icsLoadPrefs(){ try{ return JSON.parse(localStorage.getItem(ICS_PREF_KEY)||"{}")||{}; }catch(e){ return {}; } }
+function _icsSavePrefs(){
+  if(!_icsState) return;
+  try{ localStorage.setItem(ICS_PREF_KEY, JSON.stringify({
+    offColors:[..._icsState.offColors], offIds:[..._icsState.offIds],
+    memo:document.getElementById("icsMemo").checked, dur:document.getElementById("icsDur").value })); }catch(e){}
+}
+function _icsKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function _icsColorKey(e){ return (e && e.color && EV_COLORS[e.color]) ? e.color : "amber"; }
+function openIcs(){
+  const p=_icsLoadPrefs();
+  _icsState={ offColors:new Set(p.offColors||[]), offIds:new Set(p.offIds||[]) };
+  const t=new Date();
+  document.getElementById("icsFrom").value=_icsKey(t);
+  document.getElementById("icsMemo").checked=!!p.memo;
+  if(p.dur) document.getElementById("icsDur").value=p.dur;
+  icsRange(1);
+  document.getElementById("icsModal").classList.add("show");
+}
+function closeIcs(){ _icsSavePrefs(); document.getElementById("icsModal").classList.remove("show"); }
+function icsRange(months){
+  const f=document.getElementById("icsFrom").value || _icsKey(new Date());
+  const d=new Date(f+"T00:00:00"); d.setMonth(d.getMonth()+months); d.setDate(d.getDate()-1);
+  document.getElementById("icsTo").value=_icsKey(d);
+  renderIcs();
+}
+// 期間内の予定を1回ずつに展開（繰り返しの予定も、カレンダーに出ている日ごとに1件）
+function _icsOccurrences(){
+  const f=document.getElementById("icsFrom").value, t=document.getElementById("icsTo").value;
+  const out=[]; if(!f || !t || t<f) return out;
+  const d=new Date(f+"T00:00:00"), end=new Date(t+"T00:00:00");
+  let guard=0;
+  while(d<=end && guard++<800){
+    const key=_icsKey(d);
+    eventsOn(key).forEach(e=>{ if(e.kind!=="memo") out.push({e,key}); });
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+function _icsIsOn(o){ return !_icsState.offColors.has(_icsColorKey(o.e)) && !_icsState.offIds.has(o.e.id); }
+function renderIcs(){
+  if(!_icsState) return;
+  const occ=_icsOccurrences();
+  // 色ごとの件数
+  const byColor={}; occ.forEach(o=>{ const c=_icsColorKey(o.e); byColor[c]=(byColor[c]||0)+1; });
+  document.getElementById("icsColors").innerHTML = Object.keys(EV_COLORS).filter(c=>byColor[c]).map(c=>
+    `<span class="ics-chip${_icsState.offColors.has(c)?" off":""}" onclick="icsToggleColor('${c}')"><i style="background:${EV_COLORS[c]}"></i>${esc(EV_COLOR_NAMES[c]||c)}<b>${byColor[c]}</b></span>`
+  ).join("") || `<span class="ics-empty" style="padding:0">この期間に予定はありません</span>`;
+  const W="日月火水木金土";
+  document.getElementById("icsList").innerHTML = occ.length ? occ.map(o=>{
+    const d=new Date(o.key+"T00:00:00");
+    const on=_icsIsOn(o);
+    const rep=(o.e.repeat&&o.e.repeat!=="none")?`<span class="r">繰り返し</span>`:"";
+    return `<div class="ics-row${on?"":" off"}" onclick="icsToggleEvent('${o.e.id}')">
+      <input type="checkbox" ${on?"checked":""} ${_icsState.offColors.has(_icsColorKey(o.e))?"disabled":""} tabindex="-1" onclick="event.preventDefault()">
+      <i style="background:${evColorOf(o.e)}"></i>
+      <span class="d">${d.getMonth()+1}/${d.getDate()}(${W[d.getDay()]}) ${o.e.time?esc(o.e.time):"終日"}</span>
+      <span class="n">${esc(o.e.title||"（無題）")}</span>${rep}
+    </div>`;
+  }).join("") : `<div class="ics-empty">この期間に予定はありません</div>`;
+  const n=occ.filter(_icsIsOn).length;
+  const go=document.getElementById("icsGo"); go.textContent=`書き出す（${n}件）`; go.disabled=!n; go.style.opacity=n?"":".4";
+}
+function icsToggleColor(c){ const s=_icsState.offColors; s.has(c)?s.delete(c):s.add(c); renderIcs(); }
+function icsToggleEvent(id){
+  const ev=data.events.find(x=>x.id===id);
+  if(ev && _icsState.offColors.has(_icsColorKey(ev))) return;   // 色ごと外れているときは、色のほうで切り替え
+  const s=_icsState.offIds; s.has(id)?s.delete(id):s.add(id); renderIcs();
+}
+function _icsEsc(t){ return String(t).replace(/\\/g,"\\\\").replace(/;/g,"\;").replace(/,/g,"\\,").replace(/\r\n|\r|\n/g,"\\n"); }
+// 1行75バイトごとに折り返す（iCalの決まり。日本語の文字の途中では切らない）
+function _icsFold(line){
+  const enc=new TextEncoder();
+  if(enc.encode(line).length<=75) return line;
+  const out=[]; let cur="", len=0;
+  for(const ch of line){
+    const b=enc.encode(ch).length;
+    if(len+b>75){ out.push(cur); cur=" "+ch; len=1+b; } else { cur+=ch; len+=b; }
+  }
+  out.push(cur);
+  return out.join("\r\n");
+}
+function exportIcs(){
+  const from=document.getElementById("icsFrom").value, to=document.getElementById("icsTo").value;
+  const occ=_icsOccurrences().filter(_icsIsOn);
+  if(!occ.length){ alert("書き出す予定がありません。"); return; }
+  const withMemo=document.getElementById("icsMemo").checked;
+  const dur=parseInt(document.getElementById("icsDur").value,10)||60;
+  const two=n=>String(n).padStart(2,"0");
+  const local=x=>_icsKey(x).replace(/-/g,"")+"T"+two(x.getHours())+two(x.getMinutes())+"00";
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+Z$/,"Z");
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Progress Deck//JA","CALSCALE:GREGORIAN","METHOD:PUBLISH",
+    "BEGIN:VTIMEZONE","TZID:Asia/Tokyo","BEGIN:STANDARD","DTSTART:19700101T000000","TZOFFSETFROM:+0900","TZOFFSETTO:+0900","TZNAME:JST","END:STANDARD","END:VTIMEZONE"];
+  occ.forEach(({e,key})=>{
+    const ymd=key.replace(/-/g,"");
+    L.push("BEGIN:VEVENT","UID:"+e.id+"-"+ymd+"@progress-deck","DTSTAMP:"+stamp);
+    const m=/^(\d{1,2}):(\d{2})$/.exec(e.time||"");
+    if(m){
+      const st=new Date(key+"T00:00:00"); st.setHours(+m[1], +m[2], 0, 0);
+      const en=new Date(st.getTime()+dur*60000);
+      L.push("DTSTART;TZID=Asia/Tokyo:"+local(st), "DTEND;TZID=Asia/Tokyo:"+local(en));
+    }else{
+      const nx=new Date(key+"T00:00:00"); nx.setDate(nx.getDate()+1);
+      L.push("DTSTART;VALUE=DATE:"+ymd, "DTEND;VALUE=DATE:"+_icsKey(nx).replace(/-/g,""));
+    }
+    L.push("SUMMARY:"+_icsEsc(e.title||"（無題）"));
+    if(withMemo && e.memo) L.push("DESCRIPTION:"+_icsEsc(e.memo));
+    L.push("END:VEVENT");
+  });
+  L.push("END:VCALENDAR");
+  const text=L.map(_icsFold).join("\r\n")+"\r\n";
+  const blob=new Blob([text],{type:"text/calendar;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`progress-deck_${from.replace(/-/g,"")}-${to.replace(/-/g,"")}.ics`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  _icsSavePrefs();
+  closeIcs();
+}
 // スウォッチを描画（選択中に active）
 function buildColorRow(){
   const row=document.getElementById("evColorRow"); if(!row)return;
@@ -4380,6 +4560,7 @@ refreshNotifyBtn();
 document.getElementById("eventModal").addEventListener("click",e=>{if(e.target.id==="eventModal")closeEvent()});
 document.getElementById("dayModal").addEventListener("click",e=>{if(e.target.id==="dayModal")closeDay()});
 document.getElementById("monthModal").addEventListener("click",e=>{if(e.target.id==="monthModal")closeMonthPick()});
+document.getElementById("icsModal").addEventListener("click",e=>{if(e.target.id==="icsModal")closeIcs()});
 
 // Firebaseのロードが間に合わなかった場合のフォールバック（タイムアウト3秒）
 setTimeout(()=>{
